@@ -111,3 +111,18 @@ print("Количество предложений:", result["sentence_count"])
 text = "из-за дождя мы опоздали. hello-world тоже"
 print("С точкой:   ", analyze_text(text))
 print("Без точки:  ", analyze_text(text.replace(".", "")))
+
+print("Привет!!! ->", analyze_text("Привет!!!")["sentence_count"])
+print("Привет... мир ->", analyze_text("Привет... мир")["sentence_count"])
+
+print(analyze_text("Привет")["sentence_count"])  # ожидаем: 1 (по-хорошему)
+print(analyze_text("Привет!")["sentence_count"])  # ожидаем: 1
+print(analyze_text("Привет! Мир?")["sentence_count"])  # ожидаем: 2
+
+print("=== ЛОВУШКА 6: None и не-строки ===")
+for bad in [None, 123, 3.14, ["привет", "мир"], {"a": 1}, True]:
+    try:
+        result = analyze_text(bad)
+        print(f"{bad!r:20} -> OK: {result}")
+    except Exception as e:
+        print(f"{bad!r:20} -> {type(e).__name__}: {e}")
