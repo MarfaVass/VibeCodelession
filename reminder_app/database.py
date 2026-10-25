@@ -2,19 +2,19 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
-# Путь к базе данных внутри папки приложения.
 DB_PATH = Path(__file__).resolve().parent / "reminders.db"
+
+STATUSES = {"Ожидает", "Готово", "Отменено"}
 
 
 def get_connection():
-    """Создает соединение с базой данных."""
     connection = sqlite3.connect(DB_PATH)
     connection.row_factory = sqlite3.Row
     return connection
 
 
 def init_db():
-    """Создает таблицу напоминаний, если ее еще нет."""
+    """Создает таблицы задач и расписания уведомлений."""
     with get_connection() as connection:
         connection.execute("""
             CREATE TABLE IF NOT EXISTS reminders (
@@ -23,100 +23,193 @@ def init_db():
                 description TEXT DEFAULT '',
                 remind_at TEXT NOT NULL,
                 status TEXT NOT NULL DEFAULT 'Ожидает',
-                repeat_minutes INTEGER DEFAULT 0,
                 created_at TEXT NOT NULL
             )
-            """)
+        """)
+
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS reminder_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                reminder_id INTEGER NOT NULL,
+                event_at TEXT NOT NULL,
+                event_type TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'Ожидает',
+                FOREIGN KEY (reminder_id)
+                    REFERENCES reminders(id) ON DELETE CASCADE
+            )
+        """)
+
+        connection.execute("""
+            CREATE INDEX IF NOT EXISTS idx_events_due
+            ON reminder_events(status, event_at)
+        """)
 
 
-def add_reminder(title, description, remind_at, repeat_minutes=0):
-    """Добавляет новое напоминание."""
+def add_reminder(title, description, remind_at, event_times):
+    """Создает задачу и расписание ее уведомлений."""
     title = title.strip()
 
     if not title:
         raise ValueError("Название напоминания не может быть пустым.")
 
-    if repeat_minutes < 0:
-        raise ValueError("Интервал повторения не может быть отрицательным.")
+    if not event_times:
+        raise ValueError("Выбери хотя бы одно время напоминания.")
 
     with get_connection() as connection:
         cursor = connection.execute(
             """
-            INSERT INTO reminders
-                (title, description, remind_at, repeat_minutes, created_at)
-            VALUES (?, ?, ?, ?, ?)
-            """,
+            INSERT INTO reminders (title, description, remind_at, created_at)
+            VALUES (?, ?, ?, ?)
+        """,
             (
                 title,
                 description.strip(),
                 remind_at,
-                repeat_minutes,
                 datetime.now().isoformat(timespec="seconds"),
             ),
         )
-        return cursor.lastrowid
+
+        reminder_id = cursor.lastrowid
+
+        connection.executemany(
+            """
+            INSERT INTO reminder_events
+                (reminder_id, event_at, event_type)
+            VALUES (?, ?, ?)
+        """,
+            [
+                (reminder_id, event_at, event_type)
+                for event_at, event_type in event_times
+            ],
+        )
+
+        return reminder_id
 
 
 def get_reminders(status=None):
-    """Возвращает напоминания; при необходимости фильтрует по статусу."""
+    """Возвращает задачи с количеством ожидающих уведомлений."""
     with get_connection() as connection:
         if status and status != "Все":
             rows = connection.execute(
                 """
-                SELECT * FROM reminders
-                WHERE status = ?
-                ORDER BY remind_at
-                """,
+                SELECT r.*,
+                    (SELECT COUNT(*) FROM reminder_events e
+                     WHERE e.reminder_id = r.id
+                       AND e.status = 'Ожидает') AS pending_events
+                FROM reminders r
+                WHERE r.status = ?
+                ORDER BY r.remind_at
+            """,
                 (status,),
             ).fetchall()
         else:
-            rows = connection.execute(
-                "SELECT * FROM reminders ORDER BY remind_at"
-            ).fetchall()
+            rows = connection.execute("""
+                SELECT r.*,
+                    (SELECT COUNT(*) FROM reminder_events e
+                     WHERE e.reminder_id = r.id
+                       AND e.status = 'Ожидает') AS pending_events
+                FROM reminders r
+                ORDER BY r.remind_at
+            """).fetchall()
 
     return [dict(row) for row in rows]
 
 
-def update_status(reminder_id, status):
-    """Изменяет статус напоминания."""
-    allowed_statuses = {
-        "Ожидает",
-        "Готово",
-        "Просрочено",
-        "Отменено",
-    }
+def get_due_events(now):
+    """Получает все уведомления, срок которых уже наступил."""
+    with get_connection() as connection:
+        rows = connection.execute(
+            """
+            SELECT e.id AS event_id, e.event_at, e.event_type,
+                   r.id AS reminder_id, r.title, r.description, r.remind_at
+            FROM reminder_events e
+            JOIN reminders r ON r.id = e.reminder_id
+            WHERE e.status = 'Ожидает'
+              AND e.event_at <= ?
+              AND r.status = 'Ожидает'
+            ORDER BY e.event_at, r.id
+        """,
+            (now,),
+        ).fetchall()
 
-    if status not in allowed_statuses:
-        raise ValueError(f"Неизвестный статус: {status}")
+    return [dict(row) for row in rows]
 
+
+def complete_event(event_id):
+    """Отмечает уведомление обработанным."""
     with get_connection() as connection:
         connection.execute(
-            "UPDATE reminders SET status = ? WHERE id = ?",
-            (status, reminder_id),
+            """
+            UPDATE reminder_events
+            SET status = 'Обработано'
+            WHERE id = ?
+        """,
+            (event_id,),
         )
 
 
-def delete_reminder(reminder_id):
-    """Удаляет напоминание по его идентификатору."""
+def complete_reminder(reminder_id):
+    """Завершает задачу и отменяет все ее оставшиеся уведомления."""
     with get_connection() as connection:
         connection.execute(
-            "DELETE FROM reminders WHERE id = ?",
+            """
+            UPDATE reminders SET status = 'Готово' WHERE id = ?
+        """,
+            (reminder_id,),
+        )
+        connection.execute(
+            """
+            UPDATE reminder_events
+            SET status = 'Отменено'
+            WHERE reminder_id = ? AND status = 'Ожидает'
+        """,
             (reminder_id,),
         )
 
 
-def mark_overdue():
-    """Помечает просроченные напоминания, которые еще ожидают выполнения."""
-    now = datetime.now().isoformat(timespec="seconds")
+def postpone_event(event_id, new_time):
+    """Переносит выбранное уведомление на новое время."""
+    with get_connection() as connection:
+        connection.execute(
+            """
+            UPDATE reminder_events
+            SET event_at = ?, event_type = 'Отложено', status = 'Ожидает'
+            WHERE id = ?
+        """,
+            (new_time, event_id),
+        )
+
+
+def change_status(reminder_id, status):
+    if status not in STATUSES:
+        raise ValueError(f"Неизвестный статус: {status}")
 
     with get_connection() as connection:
         connection.execute(
             """
-            UPDATE reminders
-            SET status = 'Просрочено'
-            WHERE status = 'Ожидает'
-              AND remind_at < ?
-              AND repeat_minutes = 0
+            UPDATE reminders SET status = ? WHERE id = ?
+        """,
+            (status, reminder_id),
+        )
+
+        if status in {"Готово", "Отменено"}:
+            connection.execute(
+                """
+                UPDATE reminder_events SET status = 'Отменено'
+                WHERE reminder_id = ? AND status = 'Ожидает'
             """,
-            (now,),
+                (reminder_id,),
+            )
+
+
+def delete_reminder(reminder_id):
+    with get_connection() as connection:
+        connection.execute("PRAGMA foreign_keys = ON")
+        connection.execute(
+            "DELETE FROM reminder_events WHERE reminder_id = ?",
+            (reminder_id,),
+        )
+        connection.execute(
+            "DELETE FROM reminders WHERE id = ?",
+            (reminder_id,),
         )
