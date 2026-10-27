@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <title>Отчет по товарам</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2 cm 1.5 cm;
+        }
+
+        body {
+            font-family: "DejaVu Sans", "Arial", "Segoe UI", sans-serif;
+            font-size: 11pt;
+            color: #222;
+        }
+
+        h1 {
+            font-size: 18pt;
+            text-align: center;
+            margin: 0 0 8pt 0;
+        }
+
+        .meta {
+            text-align: center;
+            color: #555;
+            font-size: 10pt;
+            margin: 0 0 16pt 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        th,
+        td {
+            border: 1px solid #444;
+            padding: 6pt 8pt;
+            vertical-align: top;
+        }
+
+        th {
+            background-color: #f0f0f0;
+            text-align: left;
+        }
+
+        /* Название товара: длинные названия и слова переносятся */
+        col.name-col { width: 55%; }
+        col.price-col { width: 18%; }
+        col.qty-col { width: 12%; }
+        col.sum-col { width: 15%; }
+
+        td.name {
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
+        /* Числа — цена, количество, сумма — по правому краю */
+        .num {
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        tfoot td {
+            font-weight: bold;
+            background-color: #fafafa;
+        }
+    </style>
+</head>
+<body>
+    <h1>Отчет по товарам</h1>
+    <p class="meta">Дата формирования: {{ generated_date }}</p>
+
+    <table>
+        <colgroup>
+            <col class="name-col">
+            <col class="price-col">
+            <col class="qty-col">
+            <col class="sum-col">
+        </colgroup>
+        <thead>
+            <tr>
+                <th>Товар</th>
+                <th>Цена, ₽</th>
+                <th>Кол-во</th>
+                <th>Сумма, ₽</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for product, price, qty, row_total in items %}
+            <tr>
+                <td class="name">{{ product }}</td>
+                <td class="num">{{ price }}</td>
+                <td class="num">{{ qty }}</td>
+                <td class="num">{{ row_total }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="3">Итого</td>
+                <td class="num">{{ total_sum }}</td>
+            </tr>
+        </tfoot>
+    </table>
+</body>
+</html>
