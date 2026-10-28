@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <title>Сертификат</title>
+    <style>
+        /* A4 альбомная ориентация — классический формат сертификата. */
+        @page {
+            size: A4 landscape;
+            margin: 0;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            width: 297mm;
+            height: 210mm;
+        }
+
+        body {
+            box-sizing: border-box;
+            font-family: "DejaVu Serif", "Georgia", "Times New Roman", serif;
+            color: #3a332a;
+            background-color: #fffdf7;
+            padding: 9mm;
+        }
+
+        /* Двойная выразительная рамка: широкая золотая + тонкая внутренняя. */
+        .outer {
+            box-sizing: border-box;
+            width: 100%;
+            height: 100%;
+            border: 4.5pt double #9a7b3f;
+            padding: 4mm;
+            background-color: #fffdf7;
+        }
+
+        .inner {
+            box-sizing: border-box;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            border: 1pt solid #c9b27a;
+            text-align: center;
+        }
+
+        .title {
+            margin-top: 22mm;
+            font-size: 34pt;
+            letter-spacing: 10pt;
+            text-indent: 10pt; /* компенсация трекинга последней буквы */
+            font-weight: bold;
+            color: #7c6432;
+        }
+
+        .rule {
+            width: 58mm;
+            margin: 7mm auto;
+            border-top: 1pt solid #9a7b3f;
+        }
+
+        .leadin {
+            font-size: 13pt;
+            letter-spacing: 3pt;
+            color: #6d655a;
+        }
+
+        .recipient {
+            margin: 9mm 24mm 8mm;
+            font-size: 33pt;
+            font-style: italic;
+            font-weight: bold;
+            color: #8c3b2e;
+            overflow-wrap: anywhere;
+        }
+
+        .award-for {
+            font-size: 13pt;
+            letter-spacing: 3pt;
+            color: #6d655a;
+        }
+
+        .occasion {
+            margin: 7mm 30mm 0;
+            font-size: 17pt;
+            font-weight: bold;
+            line-height: 1.45;
+        }
+
+        /* Нижний блок: номер, организация, дата. */
+        .number {
+            position: absolute;
+            bottom: 17mm;
+            left: 0;
+            right: 0;
+            font-size: 10pt;
+            letter-spacing: 2.5pt;
+            color: #7c6432;
+        }
+
+        .footer-left {
+            position: absolute;
+            bottom: 9mm;
+            left: 18mm;
+            font-size: 11pt;
+            color: #4a4238;
+        }
+
+        .footer-right {
+            position: absolute;
+            bottom: 9mm;
+            right: 18mm;
+            font-size: 11pt;
+            color: #4a4238;
+        }
+
+        .note {
+            position: absolute;
+            bottom: 3.5mm;
+            left: 0;
+            right: 0;
+            font-size: 7.5pt;
+            font-style: italic;
+            color: #a89d85;
+        }
+    </style>
+</head>
+<body>
+    <div class="outer">
+        <div class="inner">
+            <div class="title">СЕРТИФИКАТ</div>
+            <div class="rule"></div>
+            <div class="leadin">вручается</div>
+            <div class="recipient">{{ recipient }}</div>
+            <div class="award-for">за участие в номинации</div>
+            <div class="occasion">«{{ occasion }}»</div>
+
+            <div class="number">№ {{ number }}</div>
+            <div class="footer-left">{{ org }}</div>
+            <div class="footer-right">{{ cert_date }}</div>
+            <div class="note">Поздравительный сертификат, не является документом
+                об образовании или квалификации.</div>
+        </div>
+    </div>
+</body>
+</html>

@@ -5,6 +5,14 @@ __pycache__/
 .env
 .vscode/
 
+# PDF Studio: только демонстрационные PDF попадают в репозиторий,
+# тестовые прогоны остаются на диске, но не включаются в Git
+pdf_studio/output/*
+!pdf_studio/output/.gitkeep
+!pdf_studio/output/certificate_2026-10-28_07-34-13.pdf
+!pdf_studio/output/sales_report_2026-10-28_11-16-03.pdf
+!pdf_studio/output/quotation_2026-10-28_11-16-04.pdf
+
 # Password manager local secrets
 password_manager/password.db
 password_manager/.key

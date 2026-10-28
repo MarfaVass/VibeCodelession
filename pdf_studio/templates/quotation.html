@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <title>Коммерческое предложение</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 20mm 18mm;
+        }
+
+        body {
+            font-family: "DejaVu Sans", "Arial", "Segoe UI", sans-serif;
+            font-size: 10pt;
+            color: #23282e;
+        }
+
+        /* Шапка документа. */
+        .title {
+            font-size: 20pt;
+            font-weight: bold;
+            color: #153a5e;
+        }
+
+        .accent {
+            width: 40mm;
+            border-top: 2.5pt solid #0f5680;
+            margin: 4pt 0 10pt;
+        }
+
+        .doc-meta {
+            font-size: 10pt;
+            color: #4a5561;
+            margin: 0 0 6pt 0;
+        }
+
+        /* Сведения о поставщике и получателе — только если заполнены. */
+        .parties {
+            display: table;
+            width: 100%;
+            margin: 8pt 0 4pt 0;
+        }
+
+        .party {
+            display: table-cell;
+            width: 50%;
+            vertical-align: top;
+        }
+
+        .party-label {
+            font-size: 8pt;
+            letter-spacing: 1.2pt;
+            text-transform: uppercase;
+            color: #7a848e;
+            margin-bottom: 2pt;
+        }
+
+        .party-value {
+            font-size: 10.5pt;
+        }
+
+        /* Таблица товаров. */
+        thead {
+            display: table-header-group;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            margin-top: 8pt;
+        }
+
+        th,
+        td {
+            border: 0.7pt solid #b3bcc5;
+            padding: 4.5pt 6pt;
+            vertical-align: top;
+        }
+
+        th {
+            background-color: #edf2f7;
+            text-align: left;
+            font-size: 9pt;
+        }
+
+        .num {
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        td.name {
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
+        .desc {
+            color: #6a7580;
+            font-size: 8.5pt;
+            line-height: 1.35;
+        }
+
+        .sku {
+            color: #4a5561;
+        }
+
+        /* Итоговый блок. */
+        .totals {
+            margin-top: 10pt;
+            margin-left: auto;
+            width: 88mm;
+        }
+
+        .totals table {
+            margin-top: 0;
+            border-collapse: collapse;
+        }
+
+        .totals th,
+        .totals td {
+            border: none;
+            padding: 3pt 6pt;
+        }
+
+        .totals td.label {
+            text-align: right;
+            color: #4a5561;
+        }
+
+        .totals td.value {
+            text-align: right;
+            white-space: nowrap;
+            font-weight: bold;
+        }
+
+        .grand {
+            border-top: 1.2pt solid #153a5e;
+            border-bottom: 2pt solid #153a5e;
+        }
+
+        .grand td {
+            font-size: 13pt;
+            font-weight: bold;
+            color: #153a5e;
+            padding: 6pt;
+        }
+
+        .discount-row td.value {
+            color: #a34b2a;
+        }
+
+        /* Условия: срок действия, комментарий. */
+        .terms {
+            margin-top: 14pt;
+            font-size: 9.5pt;
+            color: #303a44;
+        }
+
+        .terms .label {
+            font-weight: bold;
+        }
+
+        .comment {
+            margin-top: 8pt;
+            background-color: #f4f6f8;
+            border-left: 2.5pt solid #0f5680;
+            padding: 6pt 9pt;
+        }
+    </style>
+</head>
+<body>
+    <div class="title">Коммерческое предложение</div>
+    <div class="accent"></div>
+    <p class="doc-meta">№ {{ number }} от {{ generated_date }}</p>
+
+    {% if supplier or recipient %}
+    <div class="parties">
+        {% if supplier %}
+        <div class="party">
+            <div class="party-label">Поставщик</div>
+            <div class="party-value">{{ supplier }}</div>
+        </div>
+        {% endif %}
+        {% if recipient %}
+        <div class="party">
+            <div class="party-label">Получатель</div>
+            <div class="party-value">{{ recipient }}</div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <table>
+        <colgroup>
+            <col style="width: 11%">
+            <col style="width: 43%">
+            <col style="width: 11%">
+            <col style="width: 16%">
+            <col style="width: 19%">
+        </colgroup>
+        <thead>
+            <tr>
+                <th>Артикул</th>
+                <th>Наименование</th>
+                <th class="num">Кол-во</th>
+                <th class="num">Цена, ₽</th>
+                <th class="num">Сумма, ₽</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td class="sku">{{ item.sku }}</td>
+                <td class="name">
+                    {{ item.name }}
+                    {% if item.description %}
+                    <div class="desc">{{ item.description }}</div>
+                    {% endif %}
+                </td>
+                <td class="num">{{ item.qty }}</td>
+                <td class="num">{{ item.price }}</td>
+                <td class="num">{{ item.line_sum }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="totals">
+        <table>
+            <tr>
+                <td class="label">Итого без скидки:</td>
+                <td class="value">{{ subtotal }} ₽</td>
+            </tr>
+            {% if has_discount %}
+            <tr class="discount-row">
+                <td class="label">Скидка {{ discount_pct }} %:</td>
+                <td class="value">−{{ discount_amount }} ₽</td>
+            </tr>
+            {% endif %}
+            <tr class="grand">
+                <td class="label">Итого к оплате:</td>
+                <td class="value">{{ grand_total }} ₽</td>
+            </tr>
+        </table>
+    </div>
+
+    {% if valid_until %}
+    <p class="terms"><span class="label">Срок действия предложения:</span>
+        {{ valid_until }}</p>
+    {% endif %}
+
+    {% if comment %}
+    <div class="comment">{{ comment }}</div>
+    {% endif %}
+</body>
+</html>

@@ -1,0 +1,1 @@
+"""Окна сценариев PDF Studio (Tkinter)."""
