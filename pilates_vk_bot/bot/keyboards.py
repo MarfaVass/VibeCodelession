@@ -32,11 +32,11 @@ def main_keyboard() -> str:
     """
 
     kb = Keyboard(one_time=False, inline=False)
-    kb.add(Text("Обучение инструкторов Pilates", {"category": "specialist"}))
+    kb.add(Text("Обучение на инструктора Pilates", {"category": "specialist"}))
     kb.row()
     kb.add(Text("Обучение команды клуба / студии", {"category": "club"}))
     kb.row()
-    kb.add(Text("Пригласить инструктора", {"category": "international"}))
+    kb.add(Text("Международные семинары", {"category": "international"}))
     kb.row()
     kb.add(Text("Персональные тренировки", {"category": "client"}))
     kb.row()

@@ -21,8 +21,15 @@ def test_four_directions_defined() -> None:
 def test_labels_are_concrete_and_understandable() -> None:
     """Подписи направлений конкретные и совпадают с кнопками главного меню."""
 
-    for category, label in CATEGORY_LABELS.items():
-        assert label in _main_menu_label(category)
+    expected = {
+        "specialist": "Обучение на инструктора Pilates",
+        "club": "Обучение команды клуба / студии",
+        "international": "Международные семинары",
+        "client": "Персональные тренировки",
+    }
+    for category, label in expected.items():
+        assert CATEGORY_LABELS[category] == label
+        assert label == _main_menu_label(category)  # единообразие меню и сводки
         assert len(label) <= 40, (category, label)
 
 

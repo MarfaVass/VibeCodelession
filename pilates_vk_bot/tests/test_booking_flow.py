@@ -127,22 +127,30 @@ def test_question_during_flow_is_intercepted() -> None:
 
 
 def test_international_scenario_questions_are_english() -> None:
-    """Вопросы английского сценария не содержат случайной кириллицы."""
+    """Вопросы категорийных полей английского сценария без кириллицы:
+
+    страна, организация, формат мероприятия, тема или пожелания,
+    предполагаемые сроки — все необязательные (частному лицу организация
+    не нужна).
+    """
 
     flow = new_booking_flow("international")
-    flow.handle("John Smith")
-    questions = [flow.current_question()]
-    flow.handle("john@example.com")
-    questions.append(flow.current_question())
-    flow.handle("a seminar for our team")
-    questions.append(flow.current_question())
-    flow.handle("one-day intensive")
-    questions.append(flow.current_question())
+    assert flow.handle("John Smith").action == FlowAction.ASK
+    assert flow.handle("john@example.com").action == FlowAction.ASK
+    assert flow.handle("a seminar for our team").action == FlowAction.ASK
 
-    # имя и контакт заданы по-русски; вопросы полей — на английском
-    for question in questions[-2:]:
+    questions = []
+    while flow.step == FlowStep.FIELD:
+        questions.append(flow.current_question())
+        flow.handle("-")
+    assert len(questions) == 5, len(questions)
+    assert questions[0].startswith("Which country")
+    for question in questions:
         assert question.strip()
-        assert all(ord(ch) < 0x0400 for ch in question), question
+        # кириллица — U+0400..U+04FF; типографские тире/пунктуация не считаются
+        assert not any(0x0400 <= ord(ch) <= 0x04FF for ch in question), question
+    # все пять полей необязательны: пропуск приведёт к подтверждению
+    assert flow.step == FlowStep.CONFIRM
 
 
 def test_unknown_category_rejected() -> None:

@@ -170,30 +170,33 @@ FIELD_SPECS: dict[str, tuple[FieldSpec, ...]] = {
     ),
     "international": (
         FieldSpec(
-            key="организация",
-            question="What is the name of your organization or academy?",
-            required=True,
-        ),
-        FieldSpec(
             key="страна",
-            question="Which country and city are you located in?",
+            question="Which country are you writing from?",
         ),
         FieldSpec(
-            key="контактное лицо",
-            question="Who is the contact person? (your name is fine)",
+            key="организация",
+            question=(
+                "Is there an organization or studio behind the request? "
+                "Private person is fine — you can skip this."
+            ),
         ),
         FieldSpec(
             key="формат мероприятия",
             question=(
-                "Preferred format: a one-day intensive, a multi-module training "
-                "or a masterclass?"
+                "What event format interests you: a seminar, a masterclass "
+                "or a multi-module training?"
             ),
         ),
         FieldSpec(
-            key="тема и сроки",
+            key="тема или пожелания",
             question=(
-                "Any notes on the topic and preferred dates? "
-                "(you can skip this)"
+                "What topic or notes should we pass to Andrey? (you can skip)"
+            ),
+        ),
+        FieldSpec(
+            key="предполагаемые сроки",
+            question=(
+                "Are there preferred dates or a time frame? (you can skip)"
             ),
         ),
     ),

@@ -15,9 +15,9 @@ from __future__ import annotations
 # Подписи соответствуют кнопкам главного меню (bot/keyboards.py) и
 # ограничению VK на длину подписи кнопки в 40 символов.
 CATEGORY_LABELS = {
-    "specialist": "Обучение инструкторов Pilates",
+    "specialist": "Обучение на инструктора Pilates",
     "club": "Обучение команды клуба / студии",
-    "international": "Пригласить инструктора",
+    "international": "Международные семинары",
     "client": "Персональные тренировки",
 }
 

@@ -170,16 +170,8 @@ async def test_garbage_json_normalized(server_url):
     assert result.reason == AIFailureReason.MODEL_ERROR
 
 
-async def test_classify_mode_normalizes_model_output(server_url):
-    STATE["force"] = {"message": {"role": "assistant", "content": "Это club, конечно."}}
-    result = await _client(server_url).ask(
-        "сообщение", system_prompt=TEST_SYSTEM, classify=True, max_tokens=8
-    )
-    assert result.text == "club"
-
-    STATE["force"] = {"message": {"role": "assistant", "content": "Совсем непонятный ответ :( "}}
-    result = await _client(server_url).ask(
-        "сообщение", system_prompt=TEST_SYSTEM, classify=True, max_tokens=8
-    )
-    assert isinstance(result, AIUnavailable)
-    assert result.reason == AIFailureReason.MODEL_ERROR
+async def test_classify_mode_removed_from_api(server_url):
+    """Режим classify удалён после отказа от авто-классификации."""
+    client = _client(server_url)
+    with pytest.raises(TypeError):
+        client.ask("?", system_prompt=TEST_SYSTEM, classify=True)  # type: ignore[call-arg]

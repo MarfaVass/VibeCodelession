@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import re
 import time
 from dataclasses import dataclass
 from enum import StrEnum
@@ -89,22 +88,20 @@ class OllamaClient:
         *,
         system_prompt: str,
         context: str = "",
-        classify: bool = False,
         max_tokens: int | None = None,
         timeout: float | None = None,
     ) -> AIAnswer | AIUnavailable:
         """Задать вопрос модели. Никогда не бросает исключений.
 
-        :param question: сообщение пользователя (или задание классификации);
+        :param question: сообщение пользователя;
         :param system_prompt: системный промпт (загружается из файла);
-        :param context: найденные фрагменты базы знаний (RAG);
-        :param classify: строгий режим классификатора (короткий ответ).
+        :param context: найденные фрагменты базы знаний (RAG).
         """
 
         try:
             return await asyncio.to_thread(
                 self._ask_sync, question, system_prompt, context,
-                classify, max_tokens, timeout,
+                max_tokens, timeout,
             )
         except AIUnavailable as error:  # уже нормализовано
             return error
@@ -121,7 +118,6 @@ class OllamaClient:
         question: str,
         system_prompt: str,
         context: str,
-        classify: bool,
         max_tokens: int | None,
         timeout: float | None,
     ) -> AIAnswer:
@@ -141,8 +137,6 @@ class OllamaClient:
                 "Вопрос клиента:\n"
                 f"{question}"
             )
-        if classify:
-            user_content = f"Сообщение клиента:\n{question}"
 
         payload: dict[str, Any] = {
             "model": self.model,
@@ -153,7 +147,7 @@ class OllamaClient:
             "stream": False,
             "keep_alive": self.keep_alive,
             "options": {
-                "temperature": 0.1 if classify else 0.4,
+                "temperature": 0.4,
                 "num_predict": max_tokens if max_tokens is not None else self.max_tokens,
             },
         }
@@ -210,18 +204,11 @@ class OllamaClient:
             raise AIUnavailable(reason=reason, detail=detail)
 
         content = content.strip()
-        if classify:
-            content = _normalize_category(content)
-            if not content:
-                raise AIUnavailable(
-                    reason=AIFailureReason.MODEL_ERROR,
-                    detail="Модель вернула нераспознанный код категории",
-                )
-
-        self._log_timing(started, data, classify)
+        self._log_timing(started, data)
         return AIAnswer(text=self._trim(content))
 
-    def _log_timing(self, started: float, data: dict[str, Any], classify: bool) -> None:
+    @staticmethod
+    def _log_timing(started: float, data: dict[str, Any]) -> None:
         """Понятные временные отметки этапа обращения к Ollama (для диагностики)."""
 
         total = (time.perf_counter() - started) * 1000
@@ -230,32 +217,16 @@ class OllamaClient:
         gen_tok = data.get("eval_count")
         gen_s = data.get("eval_duration", 0) / 1e9
         speed = gen_tok / gen_s if gen_tok and gen_s else 0.0
-        mode = "classify" if classify else "rag"
         logger.info(
-            "[AI %s] %.1f с всего | промпт: %s ткн / %.1f с | генерация: %s ткн / %.1f с (%.1f ткн/с)",
-            mode, total / 1000, prompt_tok, prompt_s, gen_tok, gen_s, speed,
+            "[AI rag] %.1f с всего | промпт: %s ткн / %.1f с | генерация: %s ткн / %.1f с (%.1f ткн/с)",
+            total / 1000, prompt_tok, prompt_s, gen_tok, gen_s, speed,
         )
-
     def _trim(self, text: str) -> str:
         """Урезать ответ до безопасной длины сообщения VK."""
 
         if len(text) <= self.max_answer_len:
             return text
         return text[: self.max_answer_len - 1].rstrip() + "…"
-
-
-def _normalize_category(raw: str) -> str:
-    """Извлечь код категории из ответа модели.
-
-    Модель может дописать пояснение рядом с кодом — ищем первое точное
-    вхождение допустимого кода в ответе.
-    """
-
-    text = raw.strip().lower()
-    for code in ("specialist", "club", "international", "client", "ambiguous"):
-        if re.search(rf"\b{code}\b", text):
-            return code
-    return ""
 
 
 def describe_ai_problem(error: AIUnavailable) -> str:

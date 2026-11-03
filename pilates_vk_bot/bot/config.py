@@ -27,7 +27,6 @@ class Settings:
     ollama_url: str = "http://localhost:11434"
     ollama_model: str = "qwen2.5:3b-32k"
     db_path: Path = PROJECT_ROOT / "data" / "bookings.db"
-    prompt_path: Path = PROJECT_ROOT / "bot" / "prompts" / "system_prompt.txt"
     knowledge_path: Path = PROJECT_ROOT / "bot" / "knowledge" / "documents"
 
     # Таймауты и ограничения
@@ -58,9 +57,9 @@ def load_settings() -> Settings:
         ai_timeout = 90.0
 
     try:
-        ai_max_tokens = int(os.getenv("AI_MAX_TOKENS", "400"))
+        ai_max_tokens = int(os.getenv("AI_MAX_TOKENS", "150"))
     except ValueError:
-        ai_max_tokens = 400
+        ai_max_tokens = 150
 
     return Settings(
         vk_token=os.getenv("VK_TOKEN") or None,
@@ -70,11 +69,3 @@ def load_settings() -> Settings:
         ai_timeout=ai_timeout,
         ai_max_tokens=ai_max_tokens,
     )
-
-
-def load_system_prompt(path: Path | None = None) -> str:
-    """Загрузить системный промпт (для ручной проверки окружения)."""
-
-    from .prompts import load_prompt
-
-    return load_prompt("system") if path is None else path.read_text(encoding="utf-8").strip()

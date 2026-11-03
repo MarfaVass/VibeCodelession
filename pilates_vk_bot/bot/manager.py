@@ -106,17 +106,11 @@ CATEGORY_INTRO: dict[str, str] = {
     ),
     "club": (
         "Понял вас! Расскажу о работе с фитнес-клубами и студиями: обучение "
-        "сотрудников на территории клуба, программы Matwork, внедрение "
-        "направления пилатеса.\n\n"
+        "команды на территории вашего клуба или студии (преподаватели "
+        "Академии приезжают к вам), программы Matwork, внедрение направления "
+        "пилатеса.\n\n"
         "Спрашивайте — а предварительную заявку от организации можно оставить "
         "командой /book или кнопкой ниже."
-    ),
-    "international": (
-        "Great! I can help you as an international partner: inviting Andrey "
-        "Novikov for seminars, masterclasses and multi-module trainings at "
-        "your academy or conference.\n\n"
-        "Ask me anything about the programs — or leave a request with /book. "
-        "(Я также могу продолжить на русском.)"
     ),
     "client": (
         "Прекрасно! Расскажу о персональных тренировках Pilates: форматы "
@@ -125,6 +119,16 @@ CATEGORY_INTRO: dict[str, str] = {
         "можно оставить командой /book или кнопкой ниже."
     ),
 }
+
+# Международные семинары — индивидуальное согласование; обычный RAG-ответ
+# в этом направлении не запускается: бот сразу честно говорит, что условия
+# обсуждаются лично.
+INTERNATIONAL_INFO = (
+    "Международные семинары и мероприятия организуются по индивидуальному "
+    "согласованию. Все условия сотрудничества, формат, программа, сроки и "
+    "стоимость обсуждаются лично с Андреем Новиковым. Оставьте заявку, и мы "
+    "свяжемся с вами для обсуждения деталей."
+)
 
 
 @dataclass
@@ -255,6 +259,10 @@ class DialogueManager:
 
         state = self.reset(vk_id)  # reset заменяет объект состояния
         state.category = category
+        if category == "international":
+            # информационное сообщение вместо интро и RAG
+            return [Reply(INTERNATIONAL_INFO,
+                          keyboards.category_keyboard(category))]
         return [Reply(
             CATEGORY_INTRO[category],
             keyboards.category_keyboard(category),
@@ -359,6 +367,10 @@ class DialogueManager:
                 "сменить направление.",
                 keyboards.category_keyboard(state.category),
             )]
+        if state.category == "international":
+            # международных семинаров RAG не запускается: только индивидуальное согласование
+            return [Reply(INTERNATIONAL_INFO,
+                          keyboards.category_keyboard("international"))]
         reply_text = await self._rag_answer(text, state.category or "client")
         return [Reply(reply_text, keyboards.category_keyboard(state.category))]
 
@@ -385,8 +397,12 @@ class DialogueManager:
             self.reset(vk_id, keep_category=True)
             return [Reply(answer, keyboards.category_keyboard(
                 self.state(vk_id).category or "client"))]
-        # ANSWERED: попутный вопрос — идём в RAG, потом продолжаем сценарий
-        rag = await self._rag_answer(text, state.category or "client")
+        # ANSWERED: попутный вопрос — отвечаем по базе знаний (или фиксированным
+        # сообщением для международных семинаров) и продолжаем сценарий
+        if state.category == "international":
+            rag = INTERNATIONAL_INFO
+        else:
+            rag = await self._rag_answer(text, state.category or "client")
         answer_flow = flow.resume_after_answer()
         return [Reply(rag), Reply(answer_flow.answer)]
 
@@ -408,6 +424,10 @@ class DialogueManager:
         except Exception:  # noqa: BLE001 — база не должна ронять бота
             logger.exception("Не удалось сохранить заявку в SQLite")
             return [Reply(DB_ERROR)]
+        logger.info(
+            "[DB] заявка №%s сохранена: категория=%s, имя=%s, контактов=%d",
+            record.id, record.category, record.name, len(record.details) + 2,
+        )
         self.reset(vk_id, keep_category=True)
         return [
             Reply(

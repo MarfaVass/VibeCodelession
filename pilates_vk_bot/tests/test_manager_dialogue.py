@@ -67,7 +67,7 @@ async def test_each_direction_selectable_via_button(manager_factory,
     markers = {
         "specialist": "инструктора pilates",
         "club": "фитнес-клубами",
-        "international": "international partner",
+        "international": "индивидуальн",
         "client": "персональных тренировках pilates",
     }
     joined = " ".join(r.text for r in replies).lower()
@@ -316,6 +316,26 @@ async def test_confirm_button_payload_only_with_active_flow(manager_factory) -> 
 
 
 @pytest.mark.asyncio
+async def test_repeat_submit_does_not_duplicate_booking(manager_factory) -> None:
+    """Повторное нажатие «Отправить»/«да» после отправки не создаёт дубликатов.
+
+    Regression на ситуацию потери/дублирования заявок из реального тестирования.
+    """
+
+    manager = manager_factory(FakeAI(unavailable=True))
+    await manager.handle_message(1, None, payload={"category": "international"})
+    await manager.handle_message(1, None, payload={"cmd": "/book"})
+    for step in ["Gerry", "+7 900 000-00-06", "by mail", "Roma", "-",
+                 "Seminar", "Pilates basics", "July", "Да"]:
+        await manager.handle_message(1, step)
+    assert manager.db.count_bookings() == 1
+    # повторные нажатия кнопки подтверждения и текст «да»
+    await manager.handle_message(1, None, payload={"cmd": "confirm_yes"})
+    await manager.handle_message(1, "да")
+    assert manager.db.count_bookings() == 1
+
+
+@pytest.mark.asyncio
 async def test_diagnostic_mention_gets_action_hint(manager_factory) -> None:
     """Вопрос о первой тренировке/диагностике получает понятное следующее действие.
 
@@ -373,6 +393,74 @@ def test_no_diagnostics_page_in_knowledge_sources(kb) -> None:
         for doc in docs:
             assert doc.source in known_pages
             assert "diagnostic" not in doc.source
+
+
+@pytest.mark.asyncio
+async def test_international_branch_no_rag_and_full_booking(manager_factory) -> None:
+    """Международные семинары: фиксированное сообщение вместо RAG → анкета →
+    сводка → подтверждение → заявка в SQLite.
+
+    Поля анкеты: страна, организация (необязательно), формат мероприятия,
+    тема или пожелания, предполагаемые сроки — частное лицо проходит
+    без организации.
+    """
+
+    manager = manager_factory(FakeAI())
+    # выбор кнопкой: информационное сообщение, модель не вызывается
+    replies = await manager.handle_message(1, None, payload={"category": "international"})
+    assert manager.ai.calls == []
+    text = reps_text(replies)
+    assert "индивидуальному согласованию" in text
+    assert "Андреем Новиковым" in text
+    assert replies[0].keyboard is not None and "/book" in replies[0].keyboard
+
+    # свободные вопросы в ветке не вызывают RAG
+    replies = await manager.handle_message(1, "Какая стоимость семинара?")
+    assert manager.ai.calls == []
+    assert "индивидуальному согласованию" in reps_text(replies)
+
+    # анкета
+    await manager.handle_message(1, None, payload={"cmd": "/book"})
+    fill = ["Андрей Смирнов", "+7 900 000-00-05", "-", "Словакия", "-",
+            "Seminar", "Pilates fundamentals", "июль"]
+    for message in fill[:-1]:
+        await manager.handle_message(1, message)
+    replies = await manager.handle_message(1, fill[-1])  # предполагаемые сроки
+    text = reps_text(replies)
+    assert "Международные семинары" in text  # метка направления в сводке
+    assert "Словакия" in text
+    assert "Отправить заявку" in text
+
+    # подтверждение → заявка в SQLite, статус preliminary
+    replies = await manager.handle_message(1, "да")
+    assert "№" in reps_text(replies)
+    record = manager.db.get_latest_booking(1)
+    assert record is not None
+    assert record.category == "international"
+    assert record.name == "Андрей Смирнов"
+    assert record.details["страна"] == "Словакия"
+    assert record.details["предполагаемые сроки"] == "июль"
+    assert record.details["формат мероприятия"] == "Seminar"
+    assert "организация" not in record.details  # необязательное поле пропущено
+    assert record.status == "preliminary"
+
+
+@pytest.mark.asyncio
+async def test_international_switch_to_other_direction_no_repeat_greeting(manager_factory) -> None:
+    """Переключение из международной ветки в другую и обратно — без повторного приветствия."""
+
+    manager = manager_factory(FakeAI(unavailable=True))
+    await manager.handle_message(1, "Привет")  # первое обращение: приветствие
+    await manager.handle_message(1, None, payload={"category": "international"})
+    # смена направления кнопкой ветки
+    replies = await manager.handle_message(1, None, payload={"cmd": "/menu"})
+    assert WELCOME not in [r.text for r in replies]
+    # выбор обычной ветки и снова международной
+    await manager.handle_message(1, None, payload={"category": "client"})
+    replies = await manager.handle_message(1, None, payload={"category": "international"})
+    assert "индивидуальному согласованию" in reps_text(replies)
+    assert WELCOME not in [r.text for r in replies]
+    assert manager.db.count_bookings() == 0
 
 
 @pytest.mark.asyncio
