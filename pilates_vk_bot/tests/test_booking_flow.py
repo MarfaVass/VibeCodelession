@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from bot.booking.flow import FIELD_SPECS, FlowAction, FlowStep, new_booking_flow
+from bot.categorize import CATEGORY_LABELS
 
 
 def _walk(flow, messages):
@@ -83,7 +84,7 @@ def test_summary_shows_all_data_and_disclaimer() -> None:
     summary = flow.data.summary()
     assert "Анна Петрова" in summary
     assert "+79000000000" in summary
-    assert "частный специалист" in summary
+    assert CATEGORY_LABELS["specialist"] in summary
     assert "представитель Академии" in summary
 
 

@@ -327,6 +327,16 @@ class BookingFlow:
     def _handle_name(self, raw: str) -> FlowResult:
         value = raw.lstrip("!.")
         words = value.split()
+        # «да/нет/ок» — это ответы на подтверждения, а не имя
+        if low := value.lower().strip():
+            if low in {"да", "нет", "ок", "окей", "yes", "no"}:
+                if self.step == FlowStep.NAME:
+                    return FlowResult(
+                        action=FlowAction.ASK,
+                        answer="Это похоже на ответ «да/нет» — напишите, пожалуйста, "
+                               "имя и фамилию для заявки.",
+                        step=FlowStep.NAME,
+                    )
         if len(value) < 2 or len(words) > 4 or not any(ch.isalpha() for ch in value):
             return FlowResult(
                 action=FlowAction.ASK,

@@ -4,6 +4,9 @@
 # Виртуальное окружение
 .venv/
 
+# Кеш vkbottle (создаётся при запуске бота)
+.vkbottle/
+
 # Python
 __pycache__/
 *.py[cod]

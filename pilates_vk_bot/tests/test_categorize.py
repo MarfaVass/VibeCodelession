@@ -1,60 +1,80 @@
-"""Тесты определения категории клиента."""
+"""Тесты справочника направлений (категорий).
+
+После переработки логики категория определяется только кнопкой главного
+меню, поэтому автоматическая классификация удалена. Здесь проверяется
+единый справочник подписей, который используют клавиатуры, интро и заявки.
+"""
 
 from __future__ import annotations
 
-import pytest
+import json
 
-from bot.categorize import (
-    CategoryDecision,
-    CategoryStatus,
-    classify_by_keywords,
-    normalize_menu_number,
-)
-
-CLEAR_CASES = [
-    # (сообщение, ожидаемая категория)
-    ("Хочу стать тренером по пилатесу, пройти обучение и сертификацию", "specialist"),
-    ("Я инструктор, интересует курс Matwork 1 и повышение квалификации", "specialist"),
-    ("Мы фитнес-клуб, хотим обучить сотрудников семинаром на территории", "club"),
-    ("Представляю студию, интересует корпоративное обучение тренеров", "club"),
-    ("We are an international academy and want to invite Andrey to a conference", "international"),
-    ("Организация из Европы хочет семинар за рубежом", "international"),
-    ("Хочу записаться на персональные тренировки, пробное занятие", "client"),
-    ("Болит спина, интересуюсь занятием для себя, начать заниматься", "client"),
-]
-
-AMBIGUOUS_CASES = [
-    "Привет",
-    "Здравствуйте",
-    "Какая у вас методика?",
-]
+from bot import keyboards
+from bot.categorize import CATEGORY_LABELS, VALID_CATEGORIES
 
 
-@pytest.mark.parametrize(("text", "expected"), CLEAR_CASES)
-def test_clear_categories_by_keywords(text: str, expected: str) -> None:
-    decision = classify_by_keywords(text)
-    assert decision.is_confident
-    assert decision.category == expected
+def test_four_directions_defined() -> None:
+    assert set(VALID_CATEGORIES) == {"specialist", "club", "international", "client"}
+    assert len(CATEGORY_LABELS) == 4
 
 
-@pytest.mark.parametrize("text", AMBIGUOUS_CASES)
-def test_ambiguous_queries_are_not_forced(text: str) -> None:
-    decision = classify_by_keywords(text)
-    assert not decision.is_confident
-    assert decision.category is None
-    assert decision.status == CategoryStatus.AMBIGUOUS
+def test_labels_are_concrete_and_understandable() -> None:
+    """Подписи направлений конкретные и совпадают с кнопками главного меню."""
+
+    for category, label in CATEGORY_LABELS.items():
+        assert label in _main_menu_label(category)
+        assert len(label) <= 40, (category, label)
 
 
-def test_numbers_in_clarifying_question_map_to_categories() -> None:
-    assert normalize_menu_number("1") == "specialist"
-    assert normalize_menu_number("2") == "club"
-    assert normalize_menu_number("Выбираю 3") == "international"
-    assert normalize_menu_number("4") == "client"
-    assert normalize_menu_number("5") is None
-    assert normalize_menu_number("ничего") is None
+def _main_menu_label(category: str) -> str:
+    actions = [
+        b["action"] for row in json.loads(keyboards.main_keyboard())["buttons"]
+        for b in row
+    ]
+    for action in actions:
+        if action["payload"].get("category") == category:
+            return action["label"]
+    raise AssertionError(f"кнопка категории {category} не найдена в главном меню")
 
 
-def test_category_decision_defaults() -> None:
-    decision = CategoryDecision(status=CategoryStatus.AMBIGUOUS)
-    assert not decision.is_confident
-    assert decision.category is None
+def test_button_payloads_match_the_four_directions() -> None:
+    """Главное меню содержит ровно четыре кнопки направлений и «Помощь»."""
+
+    kb = json.loads(keyboards.main_keyboard())
+    actions = [b["action"] for row in kb["buttons"] for b in row]
+    category_payloads = [a["payload"]["category"] for a in actions if "category" in a.get("payload", {})]
+    assert set(category_payloads) == set(VALID_CATEGORIES)
+    assert any(a["payload"].get("cmd") == "/help" for a in actions)
+
+
+def test_branch_keyboard_returns_to_menu_with_clear_label() -> None:
+    """Кнопка ветки возвращает в главное меню с конкретной подписью."""
+
+    kb = json.loads(keyboards.category_keyboard("client"))
+    actions = [b["action"] for row in kb["buttons"] for b in row]
+    menu_buttons = [a for a in actions if a["payload"].get("cmd") == "/menu"]
+    assert len(menu_buttons) == 1
+    assert menu_buttons[0]["label"] == "Выбрать другое направление"
+    # кнопка заявки тоже есть и запускает /book
+    assert any(a["payload"].get("cmd") == "/book" for a in actions)
+
+
+def test_vk_limit_all_labels_40_chars() -> None:
+    """VK отклоняет кнопки с подписью длиннее 40 символов (VKAPIError 911).
+
+    Проверяются ВСЕ клавиатуры проекта: главное меню, клавиатуры веток для
+    каждой категории и клавиатура подтверждения заявки.
+    """
+
+    kb_strings = {
+        "main": keyboards.main_keyboard(),
+        **{f"category:{cat}": keyboards.category_keyboard(cat)
+           for cat in VALID_CATEGORIES},
+        "confirm": keyboards.confirm_keyboard(),
+        "empty": keyboards.empty_keyboard(),
+    }
+    for name, kb_str in kb_strings.items():
+        buttons = [b["action"] for row in json.loads(kb_str)["buttons"] for b in row]
+        for action in buttons:
+            label = action["label"]
+            assert 1 <= len(label) <= 40, (name, repr(label), len(label))

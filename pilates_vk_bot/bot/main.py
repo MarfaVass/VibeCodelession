@@ -32,7 +32,12 @@ logger = logging.getLogger("bot.main")
 
 
 def build_manager() -> DialogueManager:
-    """Собрать менеджер диалогов из настроек."""
+    """Собрать менеджер диалогов из настроек.
+
+    Категория клиента определяется только выбором кнопки, поэтому
+    классификационный промпт не используется: модель отвечает на вопросы
+    по базе знаний (RAG).
+    """
 
     settings = load_settings()
     if not settings.vk_token:
@@ -51,7 +56,6 @@ def build_manager() -> DialogueManager:
         ),
         kb=kb,
         system_prompt=load_prompt("system"),
-        classify_prompt=load_prompt("classify"),
     )
     logger.info(
         "База знаний: %d документов (%s)", len(kb), ", ".join(

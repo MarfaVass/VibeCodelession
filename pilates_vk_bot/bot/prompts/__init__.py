@@ -11,7 +11,7 @@ PROMPTS_DIR = Path(__file__).resolve().parent
 
 
 def load_prompt(name: str) -> str:
-    """Загрузить промпт по имени файла без расширения (``system``, ``classify``)."""
+    """Загрузить промпт по имени файла без расширения (например, ``system``)."""
 
     path = PROMPTS_DIR / f"{name}.txt"
     if not path.exists():

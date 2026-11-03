@@ -4,21 +4,18 @@
 
     Keyboard().add(Text(label, payload), color=KeyboardButtonColor.X).row()...
 
-Payload кнопок маршрутизирует команды: ``{"cmd": "/book"}`` — действие,
-``{"category": "client"}`` — выбор направления.
+Payload кнопок маршрутизирует действия: ``{"cmd": ...}`` — команда,
+``{"category": ...}`` — выбор направления (единственный способ выбрать
+категорию клиента).
+
+Подписи кнопок конкретные и понятные — по результатам первого тестирования
+аббревиатура «Другое направление» заменена на полное действие.
 """
 
 from __future__ import annotations
 
 from vkbottle import Keyboard, KeyboardButtonColor
 from vkbottle.tools.keyboard.action import Text
-
-CMDS = {
-    "menu": "/menu",
-    "help": "/help",
-    "book": "/book",
-    "cancel": "/cancel",
-}
 
 
 def empty_keyboard() -> str:
@@ -28,31 +25,32 @@ def empty_keyboard() -> str:
 
 
 def main_keyboard() -> str:
-    """Главное меню: четыре направления + заявка и справка."""
+    """Главное меню: ровно четыре направления + справка.
+
+    Подписи кнопок ограничены 40 символами (VKAPIError 911), поэтому
+    формулировки направлений в меню короче полных названий веток.
+    """
 
     kb = Keyboard(one_time=False, inline=False)
-    kb.add(Text("Я хочу стать тренером или повысить квалификацию", {"category": "specialist"}))
+    kb.add(Text("Обучение инструкторов Pilates", {"category": "specialist"}))
     kb.row()
-    kb.add(Text("Я представляю фитнес-клуб или студию", {"category": "club"}))
+    kb.add(Text("Обучение команды клуба / студии", {"category": "club"}))
     kb.row()
-    kb.add(Text("Я представляю международную организацию", {"category": "international"}))
+    kb.add(Text("Пригласить инструктора", {"category": "international"}))
     kb.row()
-    kb.add(Text("Меня интересуют персональные тренировки", {"category": "client"}))
+    kb.add(Text("Персональные тренировки", {"category": "client"}))
     kb.row()
-    kb.add(
-        Text("Оставить заявку", {"cmd": "/book"}),
-        color=KeyboardButtonColor.POSITIVE,
-    ).add(Text("Помощь", {"cmd": "/help"}))
+    kb.add(Text("Помощь", {"cmd": "/help"}))
     return kb.get_json()
 
 
 def category_keyboard(category: str) -> str:
-    """Клавиатура внутри направления: заявка, справка, меню."""
+    """Клавиатура внутри направления: заявка и возврат в главное меню."""
 
     kb = Keyboard(one_time=False, inline=True)
     label = "Leave a request" if category == "international" else "Оставить заявку"
     kb.add(Text(label, {"cmd": "/book"}), color=KeyboardButtonColor.POSITIVE)
-    kb.add(Text("Другое направление", {"cmd": "/menu"}))
+    kb.add(Text("Выбрать другое направление", {"cmd": "/menu"}))
     return kb.get_json()
 
 
