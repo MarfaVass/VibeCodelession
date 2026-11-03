@@ -31,8 +31,10 @@ class Settings:
     knowledge_path: Path = PROJECT_ROOT / "bot" / "knowledge" / "documents"
 
     # Таймауты и ограничения
+    # num_predict (лимит токенов ответа) — главный регулятор времени ответа:
+    # модели на CPU генерируют ~4–6 ток/с, поэтому лимит держат низким.
     ai_timeout: float = 90.0
-    ai_max_tokens: int = 400
+    ai_max_tokens: int = 150
     ai_max_answer_len: int = 3800  # лимит сообщения VK — 4096 символов
 
 

@@ -148,3 +148,28 @@ def test_international_scenario_questions_are_english() -> None:
 def test_unknown_category_rejected() -> None:
     with pytest.raises(ValueError):
         new_booking_flow("alien")
+
+
+def test_last_field_answer_leads_to_summary_not_bare_question() -> None:
+    """После последнего поля показывается сводка (CONFIRM), а не голый вопрос.
+
+    Было: переход на подтверждение отсылал FlowAction.ASK без сводки —
+    анкета визуально зависала, а прикреплённая inline-клавиатура с
+    one_time вызывала VKAPIError_911.
+    """
+
+    flow = new_booking_flow("client")
+    _walk(flow, ["Иван Иванов", "vk.com/id1", "хочу курс", "-", "-", "обсудим"])
+    assert flow.step == FlowStep.CONFIRM
+
+
+def test_international_wish_answer_also_shows_summary() -> None:
+    """Ответ на последнее поле («обсудим» и т.п.) приводит к сводке в любой ветке."""
+
+    flow = new_booking_flow("club")
+    _walk(flow, ["Ольга Смирнова", "+79000000000", "запуск направления",
+                 "Fit Life, Уфа", "Ольга Смирнова", "12", "Matwork 1", "обсудим"])
+    assert flow.step == FlowStep.CONFIRM
+    summary = flow.data.summary()
+    assert "Fit Life, Уфа" in summary
+    assert "Отправить заявку" in summary

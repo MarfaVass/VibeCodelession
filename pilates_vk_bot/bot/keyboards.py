@@ -55,9 +55,13 @@ def category_keyboard(category: str) -> str:
 
 
 def confirm_keyboard() -> str:
-    """Клавиатура подтверждения заявки."""
+    """Клавиатура подтверждения заявки.
 
-    kb = Keyboard(one_time=True, inline=True)
+    Inline-клавиатуры VK не допускают ``one_time`` (VKAPIError 911),
+    поэтому кнопки остаются до завершения сценария.
+    """
+
+    kb = Keyboard(one_time=False, inline=True)
     kb.add(Text("Отправить", {"cmd": "confirm_yes"}), color=KeyboardButtonColor.POSITIVE)
     kb.add(Text("Отменить", {"cmd": "/cancel"}), color=KeyboardButtonColor.SECONDARY)
     return kb.get_json()

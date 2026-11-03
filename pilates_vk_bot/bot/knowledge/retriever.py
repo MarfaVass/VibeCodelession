@@ -82,14 +82,19 @@ def _extract_terms(text: str) -> tuple[str, ...]:
 
 
 class KeywordRetriever:
-    """Поиск релевантных фрагментов внутри разделов базы знаний."""
+    """Поиск релевантных фрагментов внутри разделов базы знаний.
+
+    Фрагментов в контексте немного (по умолчанию 4): каждая тысяча символов
+    промпта — секунды работы модели на CPU (prompt_eval), поэтому контекст
+    держат компактным, жертвуя только хвостом релевантности.
+    """
 
     def __init__(
         self,
         kb: KnowledgeBase,
         *,
         min_score: float = 0.12,
-        max_fragments: int = 5,
+        max_fragments: int = 4,
     ) -> None:
         self.kb = kb
         self.min_score = min_score
@@ -136,6 +141,14 @@ class KeywordRetriever:
 
     @staticmethod
     def _score(query: str, fragment: str) -> float:
+        """Оценка релевантности фрагмента запросу.
+
+        Полное совпадение основы — 1.0; совпадение четырёхбуквенной основы
+        как префикса («стоит» ≈ «стоимость», «запис» ≈ «записаться») — 0.4.
+        Так топ заполняется действительно релевантными фрагментами (например,
+        с ценами), а не любыми, где встретился всего один термин.
+        """
+
         query_terms = set(_extract_terms(query))
         if not query_terms:
             return 0.0
@@ -144,16 +157,18 @@ class KeywordRetriever:
             return 0.0
         fragment_set = set(fragment_terms)
 
-        overlap = len(query_terms & fragment_set)
-        if overlap == 0:
-            # мягкая проверка частичного совпадения (например, короткие термины)
-            near = sum(
-                1
-                for qt in query_terms
-                if any(SequenceMatcher(None, qt, ft).ratio() >= 0.82 for ft in fragment_set)
-            )
-            if near == 0:
-                return 0.0
-            overlap = 0.5 * near
+        overlap = 0.0
+        for term in query_terms:
+            if term in fragment_set:
+                overlap += 1.0
+                continue
+            prefix = term[:4]
+            if len(term) >= 4 and any(ft.startswith(prefix) for ft in fragment_set):
+                overlap += 0.4
+                continue
+            if any(SequenceMatcher(None, term, ft).ratio() >= 0.82 for ft in fragment_set):
+                overlap += 0.4
 
+        if overlap == 0:
+            return 0.0
         return overlap / (len(query_terms) ** 0.5)

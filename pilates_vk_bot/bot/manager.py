@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from dataclasses import dataclass
 
 from .ai_client import AIUnavailable, describe_ai_problem
@@ -422,7 +423,13 @@ class DialogueManager:
     async def _rag_answer(self, text: str, category: str) -> str:
         """Ответ по фрагментам базы знаний выбранной категории (+ общие)."""
 
+        retrieval_started = time.perf_counter()
         result: RetrievalResult = self.retriever.search(text, category)
+        retrieval_ms = (time.perf_counter() - retrieval_started) * 1000
+        logger.info(
+            "[RAG] поиск: %.1f мс | фрагментов: %d | контекст: %d символов | категория: %s",
+            retrieval_ms, len(result.fragments), len(result.context_text), category,
+        )
         if not result.fragments:
             return INSUFFICIENT_INFO
         answer = await self.ai.ask(

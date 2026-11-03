@@ -78,3 +78,27 @@ def test_vk_limit_all_labels_40_chars() -> None:
         for action in buttons:
             label = action["label"]
             assert 1 <= len(label) <= 40, (name, repr(label), len(label))
+
+
+def test_inline_keyboard_has_no_one_time() -> None:
+    """VK отклоняет inline-клавиатуры с one_time (VKAPIError 911):
+
+    «one_time field is not available for inline keyboard».
+    Проверяются все клавиатуры проекта; у inline-клавиатур флаг one_time
+    должен быть false, у обычных — любое допустимое значение.
+    """
+
+    kb_strings = {
+        "main": keyboards.main_keyboard(),
+        **{f"category:{cat}": keyboards.category_keyboard(cat)
+           for cat in VALID_CATEGORIES},
+        "confirm": keyboards.confirm_keyboard(),
+        "empty": keyboards.empty_keyboard(),
+    }
+    for name, kb_str in kb_strings.items():
+        data = json.loads(kb_str)
+        if data["inline"]:
+            assert data["one_time"] is False, (
+                f"{name}: inline-клавиатура не должна быть one_time "
+                f"(VKAPIError_911)"
+            )

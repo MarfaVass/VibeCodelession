@@ -373,3 +373,57 @@ def test_no_diagnostics_page_in_knowledge_sources(kb) -> None:
         for doc in docs:
             assert doc.source in known_pages
             assert "diagnostic" not in doc.source
+
+
+@pytest.mark.asyncio
+async def test_club_questionnaire_full_run_to_saved_booking(manager_factory) -> None:
+    """Полный проход анкеты фитнес-клуба: от первого поля до заявки в SQLite.
+
+    Воспроизводит сценарий из первого тестирования: ответ «обсудим» на
+    последнее поле раньше приводил к VKAPIError_911 (inline-клавиатура с
+    one_time) и «зависшей» анкете без сводки.
+    """
+
+    manager = manager_factory(FakeAI(unavailable=True))
+    await manager.handle_message(1, None, payload={"category": "club"})
+
+    # кнопка заявки запускает клубный сценарий
+    replies = await manager.handle_message(1, None, payload={"cmd": "/book"})
+    assert manager.state(1).flow is not None
+    assert manager.state(1).flow.category == "club"
+
+    walk = [
+        "Ольга Смирнова",            # имя
+        "+7 900 000-00-03",          # контакт
+        "запуск направления пилатеса",  # суть запроса
+        "Fit Life, Уфа",             # организация (обязательное поле)
+        "Ольга Смирнова",            # контактное лицо
+        "12",                        # сотрудников
+        "Matwork 1",                 # интересующая программа
+        "обсудим",                   # дополнительные пожелания (последнее поле)
+    ]
+    summary_reply = None
+    for message in walk:
+        replies = await manager.handle_message(1, message)
+        summary_reply = replies
+    # после последнего поля приходит сводка, а не голый вопрос
+    text = reps_text(summary_reply)
+    assert "Fit Life, Уфа" in text
+    assert "Запрос" in text or "запуск направления" in text
+    assert "Отправить заявку" in text
+    assert "предварительн" in text.lower()
+    # к сводке прикреплена подтверждение-клавиатура без one_time
+    assert summary_reply[0].keyboard is not None
+    assert '"inline": true' in summary_reply[0].keyboard
+    assert '"one_time": true' not in summary_reply[0].keyboard
+
+    # подтверждение сохраняет заявку со статусом preliminary
+    replies = await manager.handle_message(1, "да")
+    assert "№" in reps_text(replies)
+    record = manager.db.get_latest_booking(1)
+    assert record is not None
+    assert record.category == "club"
+    assert record.name == "Ольга Смирнова"
+    assert record.details["организация"] == "Fit Life, Уфа"
+    assert record.details["пожелания"] == "обсудим"
+    assert record.status == "preliminary"

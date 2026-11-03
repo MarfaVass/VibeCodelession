@@ -101,6 +101,19 @@ async def test_system_prompt_sent_alongside_question(server_url):
     assert messages[1]["content"] == "вопрос"
 
 
+async def test_keep_alive_and_token_limit_sent_to_ollama(server_url):
+    """Модель должна оставаться в памяти (keep_alive=-1) и не превышать лимит токенов."""
+
+    client = _client(server_url, model="test-model")  # max_tokens по умолчанию
+    await client.ask("вопрос", system_prompt=TEST_SYSTEM)
+    body = STATE["last_body"]
+    assert body["keep_alive"] == -1
+    assert body["options"]["num_predict"] == client.max_tokens
+
+    await client.ask("вопрос", system_prompt=TEST_SYSTEM, max_tokens=42)
+    assert STATE["last_body"]["options"]["num_predict"] == 42
+
+
 async def test_context_is_wrapped_into_prompt(server_url):
     await _client(server_url).ask(
         "сколько стоит Matwork 1?", system_prompt=TEST_SYSTEM, context=TEST_CONTEXT

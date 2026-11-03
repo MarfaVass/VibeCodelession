@@ -289,9 +289,14 @@ class BookingFlow:
         return FlowResult(action=FlowAction.ASK, answer="", step=self.step)
 
     def resume_after_answer(self) -> FlowResult:
-        """Повторить вопрос текущего шага после AI-ответа на попутный вопрос."""
+        """Повторить вопрос текущего шага после AI-ответа на попутный вопрос.
 
-        return FlowResult(action=FlowAction.ASK, answer=self.current_question(), step=self.step)
+        На шаге подтверждения снова показывается сводка с клавиатурой
+        подтверждения, на остальных шагах — вопрос этого шага.
+        """
+
+        return self._step_transition_result() if self.step == FlowStep.CONFIRM \
+            else FlowResult(action=FlowAction.ASK, answer=self.current_question(), step=self.step)
 
     def current_question(self) -> str:
         """Вопрос, который задан на текущем шаге."""
@@ -369,7 +374,7 @@ class BookingFlow:
         else:
             self.data.request_text = self._clean(lowered)[:600]
         self.step = self._next_step()
-        return FlowResult(action=FlowAction.ASK, answer=self.current_question(), step=self.step)
+        return self._step_transition_result()
 
     def _handle_field(self, raw: str, lowered: str) -> FlowResult:
         spec = self._current_field()
@@ -389,6 +394,22 @@ class BookingFlow:
             self.data.details[spec.key] = value
         self._field_index += 1
         self.step = self._next_step()
+        return self._step_transition_result()
+
+    def _step_transition_result(self) -> FlowResult:
+        """Результат перехода на следующий шаг сценария.
+
+        При переходе на шаг подтверждения возвращается сводка собранных
+        данных (``FlowAction.CONFIRM``) — менеджер прикрепит к ней
+        inline-клавиатуру подтверждения. Иначе — вопрос следующего шага.
+        """
+
+        if self.step == FlowStep.CONFIRM:
+            return FlowResult(
+                action=FlowAction.CONFIRM,
+                answer=self.data.summary(),
+                step=self.step,
+            )
         return FlowResult(action=FlowAction.ASK, answer=self.current_question(), step=self.step)
 
     def _handle_confirm(self, lowered: str) -> FlowResult:

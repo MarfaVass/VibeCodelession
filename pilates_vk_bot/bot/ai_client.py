@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+import time
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
@@ -65,14 +66,18 @@ class OllamaClient:
         ollama_url: str = "http://localhost:11434",
         model: str = "qwen2.5:3b-32k",
         timeout: float = 90.0,
-        max_tokens: int = 400,
+        max_tokens: int = 150,
         max_answer_len: int = 3800,
+        keep_alive: int = -1,
     ) -> None:
         self.base_url = ollama_url.rstrip("/")
         self.model = model
         self.timeout = timeout
         self.max_tokens = max_tokens
         self.max_answer_len = max_answer_len
+        # Сколько Ollama держит модель в памяти: -1 — бессрочно (без
+        # перезагрузки с диска ~10 с после паузы между вопросами).
+        self.keep_alive = keep_alive
 
     # ------------------------------------------------------------------ #
     #  Публичный асинхронный интерфейс                                   #
@@ -146,12 +151,14 @@ class OllamaClient:
                 {"role": "user", "content": user_content},
             ],
             "stream": False,
+            "keep_alive": self.keep_alive,
             "options": {
                 "temperature": 0.1 if classify else 0.4,
                 "num_predict": max_tokens if max_tokens is not None else self.max_tokens,
             },
         }
 
+        started = time.perf_counter()
         try:
             response = requests.post(
                 f"{self.base_url}/api/chat",
@@ -211,7 +218,23 @@ class OllamaClient:
                     detail="Модель вернула нераспознанный код категории",
                 )
 
+        self._log_timing(started, data, classify)
         return AIAnswer(text=self._trim(content))
+
+    def _log_timing(self, started: float, data: dict[str, Any], classify: bool) -> None:
+        """Понятные временные отметки этапа обращения к Ollama (для диагностики)."""
+
+        total = (time.perf_counter() - started) * 1000
+        prompt_tok = data.get("prompt_eval_count")
+        prompt_s = data.get("prompt_eval_duration", 0) / 1e9
+        gen_tok = data.get("eval_count")
+        gen_s = data.get("eval_duration", 0) / 1e9
+        speed = gen_tok / gen_s if gen_tok and gen_s else 0.0
+        mode = "classify" if classify else "rag"
+        logger.info(
+            "[AI %s] %.1f с всего | промпт: %s ткн / %.1f с | генерация: %s ткн / %.1f с (%.1f ткн/с)",
+            mode, total / 1000, prompt_tok, prompt_s, gen_tok, gen_s, speed,
+        )
 
     def _trim(self, text: str) -> str:
         """Урезать ответ до безопасной длины сообщения VK."""
