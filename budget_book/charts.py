@@ -1,20 +1,18 @@
 # -*- coding: utf-8 -*-
 """Построение и сохранение диаграмм (matplotlib, режим Agg — только PNG).
 
-Обе диаграммы — статические PNG в корне проекта:
-  * plan_vs_fact.png   — план vs факт по категориям (группированные столбцы);
+Обе диаграммы считаются по выбранному месяцу и сохраняются в корне проекта:
+  * plan_vs_fact.png   — план vs факт по статьям (группированные столбцы);
   * actual_expenses.png — структура фактических расходов (круговая).
 
-Цвет по категории фиксированный: палитра в charts.py задана по индексу
-категории в справочнике data/categories.json, поэтому одна и та же
-категория — всегда одного цвета на обеих диаграммах. Доходные пары —
-нейтральный серый: их цвет не «крадёт» цвет расходной категории.
-План рисуется тем же цветом категории с прозрачностью, факт — насыщенно.
-Палитра проверена на совместимость с дальтонизмом (CVD-валидатор).
+Цвет статьи фиксированный: палитра задана по индексу статьи в справочнике
+data/categories.json, поэтому одна и та же статья — всегда одного цвета
+на обеих диаграммах. План рисуется тем же цветом с прозрачностью,
+факт — насыщенно. Палитра проверена на совместимость с дальтонизмом.
 """
 
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 import matplotlib
 
@@ -31,15 +29,13 @@ import reports
 # --- Оформление «холста» -------------------------------------------------------
 SURFACE = "#fcfcfb"     # поверхность графика
 INK = "#0b0b0b"         # основной текст
-MUTED = "#898781"       # подписи осей, легенды и «неизвестные» категории
+MUTED = "#898781"       # подписи осей и легенды
 GRID = "#e1e0d9"        # линии сетки
-BASELINE = "#c3c2b7"    # оси; нейтральный «план» доходных пар
+BASELINE = "#c3c2b7"    # оси
+UNKNOWN_COLOR = MUTED   # статья не из справочника (введённая ранее вручную)
 
-INCOME_PAIR_COLORS = (BASELINE, MUTED)  # (план, факт) для доходов
-UNKNOWN_COLOR = MUTED   # категория не из справочника (данные, введённые ранее)
-
-# Палитра по индексу категории в справочнике — validated categorical palette,
-# расширенная тремя шагами тех же оттенков и прогнанная через валидатор.
+# Палитра по индексу статьи в справочнике — validated categorical palette,
+# расширенная четырьмя шагами тех же оттенков и прогнанная через валидатор.
 CATALOG_PALETTE = [
     "#2a78d6",  # 1  Жильё              синий
     "#eb6834",  # 2  Продукты           оранжевый
@@ -75,7 +71,7 @@ plt.rcParams.update({
 
 
 def _money_formatter(value, _pos) -> str:
-    """Подписи оси Y: 80 000 вместо 80000.
+    """Подпись оси Y: 80 000 вместо 80000.
 
     :param value: значение по оси.
     :param _pos: позиция деления (не используется).
@@ -91,72 +87,50 @@ def _clean_axes(ax) -> None:
     ax.set_axisbelow(True)
 
 
-def category_color(catalog: List[str], name: str) -> str:
-    """Цвет категории по её индексу в справочнике.
+def article_color(catalog: List[str], name: str) -> str:
+    """Цвет статьи по её индексу в справочнике.
 
-    Категория не из справочника — нейтральный серый, чтобы она
-    не выдавала себя за какую-то системную категорию.
+    Статья не из справочника — нейтральный серый, чтобы она не выдавала
+    себя за какую-то системную статью.
 
-    :param catalog: список категорий.
-    :param name: название категории.
-    :return: hex-цвет.
+    :param catalog: список статей.
+    :param name: название статьи.
     """
-    try:
-        index = catalog.index(name)
-    except ValueError:
+    index = categories.category_color_index(catalog, name)
+    if index < 0:
         return UNKNOWN_COLOR
     return CATALOG_PALETTE[index % len(CATALOG_PALETTE)]
 
 
-def _row_pair(catalog: List[str], row: Dict) -> Tuple[str, str]:
-    """Цвет (план, факт) для строки отчёта.
-
-    Доходные строки (не из расходного справочника) — нейтральный серый.
-
-    :param catalog: список категорий.
-    :param row: {category, plan, fact}.
-    """
-    if row.get("is_income"):
-        return INCOME_PAIR_COLORS
-    color = category_color(catalog, row["category"])
-    lighter = to_rgba(color, PLAN_ALPHA)
-    return (lighter, color)
-
-
 # --- План-факт: столбчатая -------------------------------------------------------
-def build_plan_vs_fact(data: dict, catalog: List[str], path: Path = PLAN_VS_FACT_FILE) -> Optional[Path]:
-    """Построить столбчатую диаграмму «план vs факт» по категориям.
+def build_plan_vs_fact(rows: List[Dict], catalog: List[str], month: str, path: Path = PLAN_VS_FACT_FILE) -> Optional[Path]:
+    """Построить столбчатую диаграмму «план vs факт» по статьям за месяц.
 
-    Доходные категории — нейтральными парами, расходные — в цвет
-    категории из справочника (план светлее, факт насыщеннее).
+    План — светлый шаг цвета статьи, факт — насыщенный.
 
-    :param data: структура бюджета.
-    :param catalog: список категорий.
+    :param rows: строки reports.article_rows (article, plan, fact).
+    :param catalog: список статей.
+    :param month: ключ месяца «YYYY-MM» (в заголовок).
     :param path: куда сохранить PNG.
-    :return: путь к файлу или None, если категорий нет.
+    :return: путь к файлу или None, если статей нет.
     """
-    expense = [{**row, "is_income": False} for row in reports.expense_rows(data)]
-    income = [{**row, "is_income": True} for row in reports.income_rows(data)]
-    rows = income + expense
     if not rows:
         return None
-
-    names = [row["category"] for row in rows]
+    names = [row["article"] for row in rows]
     positions = range(len(rows))
 
     fig, ax = plt.subplots(figsize=(9, 5.2), dpi=150)
-    plan_lefts = [pos - BAR_PAIR_WIDTH / 2 for pos in positions]
-    fact_lefts = [pos + BAR_PAIR_WIDTH / 2 for pos in positions]
-    for row, left_plan, left_fact in zip(rows, plan_lefts, fact_lefts):
-        color_plan, color_fact = _row_pair(catalog, row)
-        ax.bar(left_plan, row["plan"], width=BAR_PAIR_WIDTH, color=color_plan,
-               edgecolor=SURFACE, linewidth=1.2, zorder=3)
-        ax.bar(left_fact, row["fact"], width=BAR_PAIR_WIDTH, color=color_fact,
-               edgecolor=SURFACE, linewidth=1.2, zorder=3)
+    # подписи значений на каждом столбце избыточны — значения читаются по оси Y
+    for row, pos in zip(rows, positions):
+        color = article_color(catalog, row["article"])
+        ax.bar(pos - BAR_PAIR_WIDTH / 2, row["plan"], width=BAR_PAIR_WIDTH,
+               color=to_rgba(color, PLAN_ALPHA), edgecolor=SURFACE, linewidth=1.2, zorder=3)
+        ax.bar(pos + BAR_PAIR_WIDTH / 2, row["fact"], width=BAR_PAIR_WIDTH,
+               color=color, edgecolor=SURFACE, linewidth=1.2, zorder=3)
 
     ax.set_xticks(list(positions))
     ax.set_xticklabels(names, fontsize=9)
-    ax.set_title("План и факт по категориям", color=INK, pad=12)
+    ax.set_title(f"План и факт по статьям — {month}", color=INK, pad=12)
     ax.set_ylabel("Сумма, руб.")
     ax.yaxis.set_major_formatter(FuncFormatter(_money_formatter))
     _clean_axes(ax)
@@ -172,22 +146,22 @@ def build_plan_vs_fact(data: dict, catalog: List[str], path: Path = PLAN_VS_FACT
 
 
 # --- Факт: круговая ----------------------------------------------------------------
-def _slice_amounts(data: dict, catalog: List[str]) -> Dict[str, float]:
+def _slices_in_catalog_order(expense_entries: List[dict], catalog: List[str]) -> Dict[str, float]:
     """Суммы фактических расходов в порядке справочника.
 
-    Сектора идут в порядке data/categories.json; категории вне справочника —
-    в конце по алфавиту. Мелкие лишние сектора, когда категорий больше,
-    чем цветов палитры, сворачиваются в «Прочее» (серый).
+    Сектора идут в порядке data/categories.json; статьи вне справочника —
+    в конце по алфавиту. Мелкие лишние сектора (когда статей больше, чем
+    цветов палитры) сворачиваются в «Прочее» (серый).
 
-    :param data: структура бюджета.
-    :param catalog: список категорий.
-    :return: упорядоченный словарь {категория: сумма}.
+    :param expense_entries: записи фактических расходов месяца.
+    :param catalog: список статей.
+    :return: упорядоченный словарь {статья: сумма}.
     """
     totals: Dict[str, float] = {}
-    for entry in data[models.KEY_ACTUAL_EXPENSES]:
-        name = str(entry.get("category", "")).strip() or reports.OTHER_CATEGORY_LABEL
+    for entry in expense_entries:
+        name = str(entry.get(models.KEY_CATEGORY, "")).strip() or reports.UNKNOWN_ARTICLE_LABEL
         try:
-            amount = float(entry.get("amount", 0.0))
+            amount = float(entry.get(models.KEY_AMOUNT, 0.0))
         except (TypeError, ValueError):
             amount = 0.0
         totals[name] = totals.get(name, 0.0) + amount
@@ -202,27 +176,28 @@ def _slice_amounts(data: dict, catalog: List[str]) -> Dict[str, float]:
     max_slices = len(CATALOG_PALETTE)
     keep = max(0, max_slices - len(ordered) - 1)
     if len(ordered) + len(leftover) > max_slices:
-        head, tail = leftover[:keep], leftover[keep:]
-        ordered.update(dict(head))
+        ordered.update(dict(leftover[:keep]))
+        tail = leftover[keep:]
         if tail:
-            ordered[reports.OTHER_CATEGORY_LABEL] = sum(amount for _, amount in tail)
+            ordered[reports.UNKNOWN_ARTICLE_LABEL] = sum(amount for _, amount in tail)
     else:
         ordered.update(dict(leftover))
     return ordered
 
 
-def build_actual_expenses_pie(data: dict, catalog: List[str], path: Path = ACTUAL_EXPENSES_FILE) -> Optional[Path]:
+def build_actual_expenses_pie(expense_entries: List[dict], catalog: List[str],
+                              path: Path = ACTUAL_EXPENSES_FILE) -> Optional[Path]:
     """Построить круговую диаграмму структуры фактических расходов.
 
-    Если фактических расходов нет — файл не создаётся (вызывающий код
-    должен сообщить об этом пользователю).
+    Если фактических расходов за месяц нет — файл не создаётся
+    (вызывающий код сообщит об этом пользователю).
 
-    :param data: структура бюджета.
-    :param catalog: список категорий.
+    :param expense_entries: записи фактических расходов месяца.
+    :param catalog: список статей.
     :param path: куда сохранить PNG.
     :return: путь к файлу или None, если трат нет.
     """
-    slices = _slice_amounts(data, catalog)
+    slices = _slices_in_catalog_order(expense_entries, catalog)
     if not slices:
         return None
 
@@ -236,7 +211,7 @@ def build_actual_expenses_pie(data: dict, catalog: List[str], path: Path = ACTUA
     fig, ax = plt.subplots(figsize=(8.4, 5.6), dpi=150)
     wedges, _slice_labels, _pct_texts = ax.pie(
         list(slices.values()),
-        colors=[category_color(catalog, name) for name in slices],
+        colors=[article_color(catalog, name) for name in slices],
         autopct=format_slice_pct,
         pctdistance=1.15,  # проценты за краем круга: тонкие сектора не переносятся
         startangle=90,
@@ -244,7 +219,7 @@ def build_actual_expenses_pie(data: dict, catalog: List[str], path: Path = ACTUA
         wedgeprops={"edgecolor": SURFACE, "linewidth": 2},  # зазор между секторами
         textprops={"fontsize": 9, "color": INK},
     )
-    # названия категорий — в легенде: у мелких секторов подписи вне круга слипаются
+    # названия статей — в легенде: у мелких секторов подписи вне круга слипаются
     ax.legend(wedges, legend_labels, loc="center left", bbox_to_anchor=(1.02, 0.5),
               frameon=False, fontsize=9)
     ax.set_title("Структура фактических расходов", color=INK, pad=12)
@@ -253,22 +228,25 @@ def build_actual_expenses_pie(data: dict, catalog: List[str], path: Path = ACTUA
     return path
 
 
-def build_charts(data: dict, catalog: List[str] = None) -> List[Path]:
-    """Построить обе диаграммы и вернуть пути к созданным PNG.
+def build_charts(data: dict, month: str, catalog: List[str] = None) -> List[Path]:
+    """Построить обе диаграммы за месяц и вернуть пути к созданным PNG.
 
     Круговая строится только при наличии фактических расходов.
 
     :param data: структура бюджета.
-    :param catalog: список категорий; None — загрузить из data/categories.json.
+    :param month: ключ месяца «YYYY-MM».
+    :param catalog: список статей; None — загрузить из data/categories.json.
     :return: список сохранённых файлов.
     """
     if catalog is None:
         catalog = categories.load_categories()
     saved: List[Path] = []
-    bar_path = build_plan_vs_fact(data, catalog)
+    bar_path = build_plan_vs_fact(reports.article_rows(data, month), catalog, month)
     if bar_path is not None:
         saved.append(bar_path)
-    pie_path = build_actual_expenses_pie(data, catalog)
+    pie_path = build_actual_expenses_pie(
+        models.ensure_month(data, month)[models.KEY_ACTUAL_EXPENSES], catalog
+    )
     if pie_path is not None:
         saved.append(pie_path)
     return saved

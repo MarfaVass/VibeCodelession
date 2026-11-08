@@ -2,99 +2,83 @@
 """Демо-данные: перезаписывает data/budget.json готовым примером месяца.
 
 Запуск: python demo.py   (из каталога budget_book)
-После этого python main.py сразу покажет живой отчёт и диаграммы.
-Категории демо-записей берутся из справочника data/categories.json;
-при первом запуске справочник создаётся из дефолтного списка.
+Создаёт блок текущего календарного месяца (плюс предыдущий — чтобы
+видно было, что месяцы держатся отдельно). Категории демо-записей
+берутся из справочника data/categories.json; при первом запуске
+справочник создаётся из дефолтного списка.
 """
 
-from datetime import date, timedelta
+from datetime import date
 
 import categories
 import models
 import storage
 
 
-def _demo_dates() -> dict:
-    """Даты демо-записей относительно сегодняшнего дня.
-
-    :return: словарь «имя события — дата (YYYY-MM-DD)».
-    """
-    today = date.today()
-    days = lambda n: (today - timedelta(days=n)).isoformat()  # noqa: E731 — компактный хелпер
-    return {
-        "salary": days(10),
-        "freelance": days(6),
-        "housing_rent": days(9),
-        "housing_utilities": days(7),
-        "groceries_1": days(8),
-        "groceries_2": days(5),
-        "groceries_3": days(2),
-        "transport": days(3),
-        "fun": days(1),
-        "health": days(4),
-    }
-
-
-def build_demo_budget() -> dict:
+def build_demo_budget(at_month: str = None) -> dict:
     """Собрать демо-бюджет месяца (зарплата 80 000, аренда 30 000 и т.д.).
 
-    Расходные категории — только из справочника, причём задействовано
-    несколько (Жильё, Продукты, Транспорт, Здоровье, Развлечения),
-    чтобы отчёт был многострочным, а круговая — разноцветной.
+    Задействовано несколько статей (Жильё, Продукты, Транспорт,
+    Здоровье, Развлечения, Одежда), чтобы таблица была многострочной,
+    а круговая диаграмма — разноцветной.
 
+    :param at_month: ключ месяца «YYYY-MM»; None — текущий календарный.
     :return: структура бюджета, готовая к сохранению.
     """
-    dates = _demo_dates()
+    year, month = models.parse_month_key(at_month) if at_month else date.today().timetuple()[:2]
+    key = models.month_key(year, month)
     budget = models.new_budget()
+    _fill_month(budget, key, year, month)
+    return budget
 
-    # --- План ---
+
+def _fill_month(budget: dict, key: str, year: int, month: int) -> None:
+    """Заполнить блок месяца демо-записями.
+
+    :param budget: структура бюджета (изменяется на месте).
+    :param key: ключ месяца.
+    :param year: год для дат записей.
+    :param month: месяц для дат записей.
+    """
+    block = models.ensure_month(budget, key)
+
+    def day(day_number: int) -> str:
+        """Дата внутри месяца по номеру дня.
+
+        :param day_number: день месяца 1..31.
+        """
+        return models.month_key(year, month) + f"-{day_number:02d}"
+
+    # --- План доходов ---
     for source, amount in (("Зарплата", 80000), ("Подработка", 20000)):
-        budget[models.KEY_PLANNED_INCOME].append(models.make_planned_income(source, amount))
+        block[models.KEY_PLANNED_INCOME].append(models.make_planned_income(source, amount))
 
-    mandatory_plan = [
-        ("Жильё", "Аренда квартиры", 30000),
-        ("Жильё", "Коммунальные платежи", 6000),
-        ("Продукты", "Весь месяц", 20000),
-        ("Транспорт", "Проездной", 3000),
-        ("Здоровье", "Лекарства на месяц", 4000),
-    ]
-    for category, name, amount in mandatory_plan:
-        budget[models.KEY_PLANNED_EXPENSES][models.KEY_MANDATORY].append(
-            models.make_planned_expense(models.KEY_MANDATORY, category, name, amount)
-        )
-
-    purchases_plan = [
-        ("Развлечения", "Билеты в театр", 5000),
-        ("Одежда", "Куртка к зиме", 12000),
-    ]
-    for category, name, amount in purchases_plan:
-        budget[models.KEY_PLANNED_EXPENSES][models.KEY_PURCHASES].append(
-            models.make_planned_expense(models.KEY_PURCHASES, category, name, amount)
-        )
+    # --- План статей ---
+    for category, amount in (
+        ("Жильё", 36000),      # аренда 30 000 + коммунальные 6 000
+        ("Продукты", 20000),
+        ("Транспорт", 3000),
+        ("Здоровье", 4000),
+        ("Развлечения", 5000),
+        ("Одежда", 12000),
+    ):
+        models.set_planned_article(block, category, amount)
 
     # --- Факт ---
-    budget[models.KEY_ACTUAL_INCOME].append(
-        models.make_actual_income("Зарплата", "Аванс за половину месяца", 40000, dates["salary"])
-    )
-    budget[models.KEY_ACTUAL_INCOME].append(
-        models.make_actual_income("Подработка", "Мелкий заказ", 12000, dates["freelance"])
-    )
-
     actual_expenses = [
-        ("Жильё", "Аренда квартиры", 30000, dates["housing_rent"]),
-        ("Жильё", "Электричество и вода", 5200, dates["housing_utilities"]),
-        ("Продукты", "Супермаркет (большая закупка)", 8500, dates["groceries_1"]),
-        ("Продукты", "Супермаркет (обычные покупки)", 4200, dates["groceries_2"]),
-        ("Продукты", "Рынок", 2600, dates["groceries_3"]),
-        ("Транспорт", "Проездной", 3000, dates["transport"]),
-        ("Развлечения", "Кино с друзьями", 1400, dates["fun"]),
-        ("Здоровье", "Аптека", 1800, dates["health"]),
+        ("Жильё", "Аренда квартиры", 30000, day(5)),
+        ("Жильё", "Электричество и вода", 5200, day(7)),
+        ("Продукты", "Супермаркет (большая закупка)", 8500, day(4)),
+        ("Продукты", "Супермаркет (обычные покупки)", 4200, day(9)),
+        ("Продукты", "Рынок", 2600, day(13)),
+        ("Транспорт", "Проездной", 3000, day(6)),
+        ("Развлечения", "Кино с друзьями", 1400, day(12)),
+        ("Здоровье", "Аптека", 1800, day(8)),
     ]
-    for category, name, amount, spent_on in actual_expenses:
-        budget[models.KEY_ACTUAL_EXPENSES].append(
-            models.make_actual_expense(category, name, amount, spent_on)
+    for category, comment, amount, spent_on in actual_expenses:
+        block[models.KEY_ACTUAL_EXPENSES].append(
+            models.make_actual_expense(category, comment, amount, spent_on)
         )
-    return budget
 
 
 def main() -> None:
@@ -103,8 +87,8 @@ def main() -> None:
     budget = build_demo_budget()
     storage.save_budget(budget)
     print(f"Демо-данные записаны в {storage.DATA_FILE}")
-    print(f"Справочник категорий: {categories.CATEGORIES_FILE} ({len(catalog)} категорий)")
-    print("Теперь запустите python main.py и выберите [3] — отчёт.")
+    print(f"Справочник статей: {categories.CATEGORIES_FILE} ({len(catalog)} категорий)")
+    print("Теперь запустите: streamlit run app.py")
 
 
 if __name__ == "__main__":

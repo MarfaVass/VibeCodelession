@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-"""Расчёт план-факта и формирование текстового отчёта.
+"""Расчёт план-факта за выбранный месяц и формирование таблицы отчёта.
 
-Модуль не знает про ввод-вывод консоли, кроме print_report: он принимает
-структуру бюджета и возвращает/печатает готовый отчёт, что удобно и для
-меню, и для smoke-теста.
+Модуль не знает про интерфейс: принимает структуру бюджета и ключ
+месяца, возвращает строки статей (план, факт, разница, процент) и
+итоги. format_report() оставлен текстовым — им пользуется smoke-тест,
+а Streamlit печатает те же данные таблицей.
 """
 
 from typing import Dict, List, Optional
@@ -13,8 +14,9 @@ import models
 
 PERCENT_DASH = "—"
 NO_DATA = "(нет данных)"
-TABLE_HEADER = ("Категория", "План", "Факт", "Выполнение")
-OTHER_CATEGORY_LABEL = "Прочие"
+ARTICLE_COLUMN = "Статья"
+NO_PLANNED_INCOME_NOTE = "Плановый доход за месяц не задан."
+UNKNOWN_ARTICLE_LABEL = "Вне справочника"
 
 
 # --- Форматирование -----------------------------------------------------------
@@ -25,174 +27,132 @@ def format_money(value: float) -> str:
 
 
 def format_percent(plan: float, fact: float) -> str:
-    """Процент выполнения плана; при нулевом плане — прочерк (без деления на 0)."""
+    """Процент расхода от плана; при нулевом плане — прочерк (без деления на 0)."""
     if plan == 0:
         return PERCENT_DASH
     return f"{fact / plan * 100:.1f}%"
 
 
 def _as_float(value) -> float:
-    """Привести сумму записи к float (на случай ручной правки файла)."""
+    """Сумму записи привести к float (на случай ручной правки файла)."""
     try:
         return float(value)
     except (TypeError, ValueError):
         return 0.0
 
 
-# --- Сборка строк по категориям -----------------------------------------------
-def _merge_category(rows: Dict[str, Dict[str, float]], category: str, column: str, amount: float) -> None:
-    """Добавить сумму в накопительную строку категории (plan или fact)."""
-    row = rows.setdefault(category.strip() or OTHER_CATEGORY_LABEL, {"plan": 0.0, "fact": 0.0})
-    row[column] += amount
+# --- Строки статей месяца -------------------------------------------------------
+def article_rows(data: dict, month: str) -> List[Dict]:
+    """Собрать строки план-факта по статьям расходов за месяц.
 
-
-def income_rows(data: dict) -> List[Dict]:
-    """Собрать строки «план/факт» по категориям (источникам) доходов.
+    Порядок статей — как в справочнике data/categories.json; статьи вне
+    справочника печатаются после, по алфавиту. Статьи без плана и без
+    факта не выводятся.
 
     :param data: структура бюджета.
-    :return: список словарей {category, plan, fact}, отсортированный по категории.
+    :param month: ключ месяца «YYYY-MM».
+    :return: список словарей {article, plan, fact, diff, percent}.
     """
-    rows: Dict[str, Dict[str, float]] = {}
-    for entry in data[models.KEY_PLANNED_INCOME]:
-        _merge_category(rows, str(entry.get("source", "")), "plan", _as_float(entry.get("amount")))
-    for entry in data[models.KEY_ACTUAL_INCOME]:
-        _merge_category(rows, str(entry.get("category", "")), "fact", _as_float(entry.get("amount")))
-    return sorted(
-        ({"category": category, **row} for category, row in rows.items()),
-        key=lambda row: row["category"],
-    )
+    block = models.ensure_month(data, month)
+    totals: Dict[str, Dict[str, float]] = {}
+    for entry in block[models.KEY_PLANNED_ARTICLES]:
+        article = str(entry.get(models.KEY_CATEGORY, ""))
+        row = totals.setdefault(article, {"plan": 0.0, "fact": 0.0})
+        row["plan"] += _as_float(entry.get(models.KEY_AMOUNT))
+    for entry in block[models.KEY_ACTUAL_EXPENSES]:
+        article = str(entry.get(models.KEY_CATEGORY, ""))
+        row = totals.setdefault(article, {"plan": 0.0, "fact": 0.0})
+        row["fact"] += _as_float(entry.get(models.KEY_AMOUNT))
 
-
-def expense_rows(data: dict) -> List[Dict]:
-    """Собрать строки «план/факт» по категориям расходов.
-
-    В план попадают обе разновидности плановых расходов
-    (mandatory и purchases), в факт — все фактические траты.
-
-    Порядок строк — как в справочнике data/categories.json;
-    категории вне справочника печатаются после, по алфавиту.
-    Категории без плана и без факта не выводятся.
-
-    :param data: структура бюджета.
-    :return: список словарей {category, plan, fact}.
-    """
-    rows: Dict[str, Dict[str, float]] = {}
-    for kind in models.EXPENSE_KINDS:
-        for entry in data[models.KEY_PLANNED_EXPENSES][kind]:
-            _merge_category(rows, str(entry.get("category", "")), "plan", _as_float(entry.get("amount")))
-    for entry in data[models.KEY_ACTUAL_EXPENSES]:
-        _merge_category(rows, str(entry.get("category", "")), "fact", _as_float(entry.get("amount")))
-    used = [row for row in rows.items() if row[1]["plan"] > 0 or row[1]["fact"] > 0]
     catalog = categories.load_categories()
-    ordered = [
-        {"category": name, **values} for name, values in used if name in catalog
-    ]
-    ordered += sorted(
-        ({"category": name, **values} for name, values in used if name not in catalog),
-        key=lambda row: row["category"],
-    )
-    return [
-        {"category": row["category"], "plan": row["plan"], "fact": row["fact"]}
-        for row in ordered
-    ]
+    ordered = [article for article in catalog if article in totals]
+    ordered += sorted(article for article in totals if article not in catalog)
+
+    rows: List[Dict] = []
+    for article in ordered:
+        plan, fact = totals[article]["plan"], totals[article]["fact"]
+        if plan == 0 and fact == 0:
+            continue  # статью без плана и без факта не выводим
+        rows.append({
+            "article": article,
+            "plan": plan,
+            "fact": fact,
+            "diff": round(plan - fact, 2),
+            "percent": fact / plan if plan > 0 else None,  # доля факта от плана
+        })
+    return rows
 
 
-def _format_table(rows: List[Dict]) -> str:
-    """Сформатировать таблицу категорий: план / факт / процент выполнения."""
-    name_width = max(
-        [len(TABLE_HEADER[0])] + [len(row["category"]) for row in rows] + [len(NO_DATA)]
-    )
-    lines = [
-        f"  {TABLE_HEADER[0].ljust(name_width)} | {TABLE_HEADER[1]:>12} | "
-        f"{TABLE_HEADER[2]:>12} | {TABLE_HEADER[3]:>10}"
-    ]
-    lines.append("  " + "-" * (name_width + 44))
-    if not rows:
-        lines.append(f"  {NO_DATA.ljust(name_width)}")
-        return "\n".join(lines)
-    for row in rows:
-        lines.append(
-            f"  {row['category'].ljust(name_width)} | {format_money(row['plan']):>12} | "
-            f"{format_money(row['fact']):>12} | {format_percent(row['plan'], row['fact']):>10}"
-        )
-    return "\n".join(lines)
-
-
-# --- Итоги ---------------------------------------------------------------------
-def compute_totals(data: dict) -> Dict[str, Dict[str, float]]:
-    """Рассчитать итоги план/факт: доходы, расходы (по типам), остаток.
-
-    Фактические расходы, чья категория не встречается среди плановых,
-    попадают в «Прочие» (план 0, поэтому процент — прочерк).
+def income_total(data: dict, month: str) -> float:
+    """Суммарный плановый доход за месяц.
 
     :param data: структура бюджета.
-    :return: словарь вида {«income»: {plan, fact}, «mandatory»: {...}, …}.
+    :param month: ключ месяца «YYYY-MM».
     """
-    income_plan = sum(_as_float(e.get("amount")) for e in data[models.KEY_PLANNED_INCOME])
-    income_fact = sum(_as_float(e.get("amount")) for e in data[models.KEY_ACTUAL_INCOME])
+    block = models.ensure_month(data, month)
+    return sum(_as_float(entry.get(models.KEY_AMOUNT)) for entry in block[models.KEY_PLANNED_INCOME])
 
-    plan_by_kind = {kind: 0.0 for kind in models.EXPENSE_KINDS}
-    for kind in models.EXPENSE_KINDS:
-        plan_by_kind[kind] = sum(
-            _as_float(e.get("amount")) for e in data[models.KEY_PLANNED_EXPENSES][kind]
-        )
-    expenses_plan = sum(plan_by_kind.values())
 
-    fact_by_kind = {kind: 0.0 for kind in models.EXPENSE_KINDS}
-    fact_by_kind["other"] = 0.0
-    for entry in data[models.KEY_ACTUAL_EXPENSES]:
-        kind = models.find_planned_kind(data, str(entry.get("category", "")))
-        bucket = kind if kind is not None else "other"
-        fact_by_kind[bucket] += _as_float(entry.get("amount"))
-    expenses_fact = sum(fact_by_kind.values())
+def expenses_totals(data: dict, month: str) -> Dict[str, float]:
+    """Итоги расходов за месяц и остаток (плановый и фактический).
 
+    :param data: структура бюджета.
+    :param month: ключ месяца «YYYY-MM».
+    :return: {expenses_plan, expenses_fact, balance_plan, balance_fact}.
+    """
+    rows = article_rows(data, month)
+    expenses_plan = sum(row["plan"] for row in rows)
+    expenses_fact = sum(row["fact"] for row in rows)
     return {
-        "income": {"plan": income_plan, "fact": income_fact},
-        "expenses": {"plan": expenses_plan, "fact": expenses_fact},
-        models.KEY_MANDATORY: {"plan": plan_by_kind[models.KEY_MANDATORY], "fact": fact_by_kind[models.KEY_MANDATORY]},
-        models.KEY_PURCHASES: {"plan": plan_by_kind[models.KEY_PURCHASES], "fact": fact_by_kind[models.KEY_PURCHASES]},
-        "other": {"plan": 0.0, "fact": fact_by_kind["other"]},  # план у «Прочих» всегда 0
-        "balance": {"plan": income_plan - expenses_plan, "fact": income_fact - expenses_fact},
+        "expenses_plan": expenses_plan,
+        "expenses_fact": expenses_fact,
+        "balance_plan": income_total(data, month) - expenses_plan,
+        "balance_fact": -expenses_fact,  # факт-доходов в интерфейсе нет
     }
 
 
-def format_totals_line(label: str, totals: Dict[str, float]) -> str:
+def format_totals_line(label: str, plan: Optional[float], fact: float) -> str:
     """Сформатировать одну строку итогов «план/факт».
 
     :param label: название строки итога.
-    :param totals: словарь {plan, fact} (ключ «plan» может отсутствовать).
+    :param plan: суммарный план (None — прочерк).
+    :param fact: суммарный факт.
     """
-    plan_text = format_money(totals["plan"]) if "plan" in totals else PERCENT_DASH
-    return f"  {label.ljust(34)} план: {plan_text:>12} | факт: {format_money(totals['fact']):>12}"
+    plan_text = format_money(plan) if plan is not None else PERCENT_DASH
+    return f"  {label.ljust(34)} план: {plan_text:>12} | факт: {format_money(fact):>12}"
 
 
-def format_report(data: dict) -> str:
-    """Собрать полный текст отчёта «План-факт».
+def format_report(data: dict, month: str) -> str:
+    """Собрать полный текст отчёта «План-факт» за месяц.
 
     :param data: структура бюджета.
+    :param month: ключ месяца «YYYY-MM».
     :return: готовый к печати отчёт.
     """
-    totals = compute_totals(data)
-    parts = ["ОТЧЁТ «ПЛАН-ФАКТ»", "=" * 62, "Итоги:"]
-    parts.append(format_totals_line("Доходы", totals["income"]))
-    parts.append(format_totals_line("Расходы — всего", totals["expenses"]))
-    parts.append(format_totals_line("  " + models.KIND_LABELS[models.KEY_MANDATORY], totals[models.KEY_MANDATORY]))
-    parts.append(format_totals_line("  " + models.KIND_LABELS[models.KEY_PURCHASES], totals[models.KEY_PURCHASES]))
-    if totals["other"]["fact"] > 0:
-        parts.append(format_totals_line("  " + models.OTHER_KIND_LABEL, totals["other"]))
-    parts.append(format_totals_line("Остаток (доходы - расходы)", totals["balance"]))
+    totals = expenses_totals(data, month)
+    income_plan = income_total(data, month)
+    parts = [
+        f"ОТЧЁТ «ПЛАН-ФАКТ» — {month}",
+        "=" * 62,
+        "Итоги:",
+    ]
+    parts.append(format_totals_line("Доходы (план)", income_plan, 0.0))
+    parts.append(format_totals_line("Расходы — всего", totals["expenses_plan"], totals["expenses_fact"]))
+    parts.append(format_totals_line("Остаток (доходы - расходы)", totals["balance_plan"], totals["balance_fact"]))
     parts.append("")
-    parts.append("Доходы по категориям:")
-    parts.append(_format_table(income_rows(data)))
-    parts.append("")
-    parts.append("Расходы по категориям:")
-    parts.append(_format_table(expense_rows(data)))
+    parts.append("План-факт по статьям:")
+    rows = article_rows(data, month)
+    if not rows:
+        parts.append(f"  {NO_DATA}")
+        return "\n".join(parts)
+    width = max(len(ARTICLE_COLUMN), max(len(row["article"]) for row in rows))
+    parts.append(f"  {ARTICLE_COLUMN.ljust(width)} | {'План':>12} | {'Факт':>12} | "
+                 f"{'Разница':>12} | {'% от плана':>10}")
+    parts.append("  " + "-" * (width + 62))
+    for row in rows:
+        percent = f"{row['percent'] * 100:.1f}%" if row["percent"] is not None else PERCENT_DASH
+        parts.append(
+            f"  {row['article'].ljust(width)} | {format_money(row['plan']):>12} | "
+            f"{format_money(row['fact']):>12} | {format_money(row['diff']):>12} | {percent:>10}"
+        )
     return "\n".join(parts)
-
-
-def print_report(data: dict) -> None:
-    """Напечатать отчёт в консоль.
-
-    :param data: структура бюджета.
-    """
-    print(format_report(data))

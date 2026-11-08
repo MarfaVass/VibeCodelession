@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
-"""Справочник расходных категорий: data/categories.json.
+"""Справочник статей расходов: data/categories.json.
 
 Файл создаётся автоматически из дефолтного списка при первом запуске.
-Категория теперь всегда выбирается из списка — свободный текст отключён,
-поэтому и отчёт, и диаграммы остаются согласованными между собой
-(порядок строк/секторов и фиксированный цвет категории).
+Статья всегда выбирается из списка — свободный текст отключён, поэтому
+и отчёт, и диаграммы остаются согласованными между собой (порядок
+строк/секторов и фиксированный цвет статьи). Через интерфейс список
+можно пополнять — новая статья сразу появляется среди шаблонных.
 """
 
 import json
 import sys
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import List
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 DATA_DIR = PROJECT_ROOT / "data"
@@ -105,10 +106,10 @@ def normalize_category(name: str) -> str:
 
 
 def add_category(catalog: List[str], name: str, path: Path = CATEGORIES_FILE) -> bool:
-    """Добавить категорию, если её ещё нет (регистр и пробелы игнорируются).
+    """Добавить статью, если её ещё нет (регистр и пробелы игнорируются).
 
     :param catalog: текущий справочник (изменяется на месте).
-    :param name: новое название.
+    :param name: новое название статьи.
     :param path: файл справочника для немедленного сохранения.
     :return: True — добавлено; False — дубликат.
     """
@@ -121,51 +122,14 @@ def add_category(catalog: List[str], name: str, path: Path = CATEGORIES_FILE) ->
     return True
 
 
-def select_category_by_number(catalog: List[str], raw: str) -> Optional[str]:
-    """Выбрать категорию по номеру из справочника (чистая функция).
+def category_color_index(catalog: List[str], name: str) -> int:
+    """Индекс статьи в справочнике — для фиксированного цвета на диаграммах.
 
-    Номер — строка от 1 до длины списка. Всё остальное (не число,
-    ноль, выход за границы, пустая строка) даёт None.
-
-    :param catalog: список категорий.
-    :param raw: ответ пользователя.
-    :return: название категории или None.
+    :param catalog: список статей.
+    :param name: название статьи.
+    :return: индекс или -1, если статью в справочнике нет.
     """
-    raw = (raw or "").strip()
-    if not raw.isdigit():
-        return None
-    index = int(raw)
-    if not 1 <= index <= len(catalog):
-        return None
-    return catalog[index - 1]
-
-
-def choose_category(catalog: List[str]) -> str:
-    """Спросить категорию выбором по номеру из напечатанного списка.
-
-    При неверном номере печатает подсказку и повторяет запрос.
-
-    :param catalog: список категорий.
-    :return: выбранная категория.
-    """
-    print("Выберите категорию:")
-    for number, name in enumerate(catalog, start=1):
-        print(f"  {number:>2}. {name}")
-    hint = f"номер от 1 до {len(catalog)}"
-    while True:
-        raw = input(f"Номер категории ({hint}): ")
-        category = select_category_by_number(catalog, raw)
-        if category is not None:
-            return category
-        print(f"Ошибка: нужен номер из списка ({hint}).", file=sys.stderr)
-
-
-def print_catalog(catalog: Union[List[str], None] = None) -> None:
-    """Напечатать справочник с номерами.
-
-    :param catalog: список категорий; None — загрузить/создать файл.
-    """
-    names = load_categories() if catalog is None else catalog
-    print("Справочник расходных категорий:")
-    for number, name in enumerate(names, start=1):
-        print(f"  {number:>2}. {name}")
+    try:
+        return catalog.index(name)
+    except ValueError:
+        return -1

@@ -2,13 +2,17 @@
 """Загрузка и сохранение бюджета в JSON-файле.
 
 Единственный файл данных — data/budget.json (относительно корня проекта).
-При отсутствии файл создаётся автоматически. При повреждении старый файл
-переносится в data/budget.corrupt.json, и приложение начинает с чистого
-бюджета — так испорченные данные можно всегда посмотреть вручную.
+При первом запуске создаётся автоматически. Формат — по месяцам
+(см. models): {«months»: {«YYYY-MM»: блок}}. Если файл повреждён или
+имеет неожиданную структуру, испорченная копия переносится в
+data/budget.corrupt.json и приложение начинает с чистого бюджета.
+Старый CLI-формат (план/факт в корне файла) автоматически мигрируется
+в текущий месяц — данные не теряются.
 """
 
 import json
 import sys
+from datetime import date
 from pathlib import Path
 
 import models
@@ -25,14 +29,23 @@ _CORRUPT_NOTICE = (
 )
 
 
+def _today_month_key() -> str:
+    """Ключ текущего календарного месяца «YYYY-MM».
+
+    :return: строка-ключ.
+    """
+    today = date.today()
+    return models.month_key(today.year, today.month)
+
+
 def load_budget() -> dict:
-    """Загрузить бюджет из JSON-файла.
+    """Загрузить бюджет, приводя всё к формату по месяцам.
 
-    Если файла нет — создаётся новый пустой бюджет и сразу сохраняется.
-    Если файл повреждён (не читается или не похож на бюджет) — испорченный
-    файл переносится в data/budget.corrupt.json и создаётся новый бюджет.
+    Нет файла или файл повреждён — создаётся новый пустой бюджет
+    (испорченный переносится в data/budget.corrupt.json). Данные
+    CLI-версии автоматически переносятся в текущий месяц.
 
-    :return: структура бюджета (см. models.new_budget).
+    :return: структура бюджета {months: {«YYYY-MM»: блок}}.
     """
     if not DATA_FILE.exists():
         budget = models.new_budget()
@@ -45,24 +58,34 @@ def load_budget() -> dict:
     except json.JSONDecodeError:
         data = None
 
-    if not models.is_valid_budget(data):
-        # errors="replace" и try/except — не падаем и на неудачном переносе
+    if not isinstance(data, dict):
+        print(_CORRUPT_NOTICE, file=sys.stderr)
         try:
             CORRUPT_FILE.write_text(raw, encoding="utf-8")
         except OSError:
             pass
-        print(_CORRUPT_NOTICE, file=sys.stderr)
         budget = models.new_budget()
         save_budget(budget)
         return budget
 
-    data.setdefault(models.KEY_PLANNED_INCOME, [])
-    data.setdefault(models.KEY_ACTUAL_INCOME, [])
-    data.setdefault(models.KEY_ACTUAL_EXPENSES, [])
-    data.setdefault(models.KEY_PLANNED_EXPENSES, {})
-    for kind in models.EXPENSE_KINDS:
-        data[models.KEY_PLANNED_EXPENSES].setdefault(kind, [])
-    return data
+    if models.is_valid_budget(data):
+        for key in list(data[models.KEY_MONTHS]):
+            models.ensure_month(data, key)
+        return data
+
+    if data:  # словарь без «months» — вероятно, данные CLI-версии
+        budget = models.migrate_legacy_budget(data)
+        save_budget(budget)
+        return budget
+
+    print(_CORRUPT_NOTICE, file=sys.stderr)
+    try:
+        CORRUPT_FILE.write_text(raw, encoding="utf-8")
+    except OSError:
+        pass
+    budget = models.new_budget()
+    save_budget(budget)
+    return budget
 
 
 def save_budget(data: dict) -> None:
