@@ -2,17 +2,23 @@
 """Smoke-тест веб-приложения: логика без Streamlit.
 
 Запуск: python smoke_test.py   (из каталога budget_book)
-Проверяется всё, кроме Streamlit-Интерфейса (он отмечается в REPORT.md
-как проверяемый вручную):
-  1. модель данных и миграция старого CLI-формата из storage;
-  2. справочник статей: добавление, отказ на дубликат без учёта
-     регистра и пробелов, восстановление из дефолта при порче файла;
-  3. отчёт: план, факт, разница, процент (прочерк при нулевом плане);
-  4. диаграммы: обе PNG на данных текущего месяца;
-  5. валидация сумм: запятая, пробелы, ноль как «пустое поле»,
-     отрицательные — отклонение.
+Streamlit-интерфейс автотестами не покрыт (проверяется вручную —
+см. REPORT.md). Тестируется всё остальное:
+  1. модель: месяц-блоки, план по (группа, подкатегория), входящий
+     остаток, миграция CLI-формата и плоских записей v2 (→ «Прочее»);
+  2. двухуровневый справочник: группа/подкатегория добавляются,
+     дубликаты отклоняются (регистр и пробелы игнорируются), плоский
+     файл мигрируется, повреждённый восстанавливается из дефолта;
+  3. удаление статьи: записи переносятся в «Прочее» (группа и
+     подкатегория), «Прочее» защищено от удаления;
+  4. отчёт по группам с раскрытием подкатегорий: план, факт, разница,
+     процент (прочерк при нулевом плане), пустой месяц;
+  5. диаграммы по группам: обе PNG; круговая не строится без трат;
+  6. валидация сумм: запятая, пробелы, ноль как «пустое поле»,
+     отрицательные и мусор отклоняются.
 """
 
+import json
 import sys
 import tempfile
 from pathlib import Path
@@ -27,140 +33,252 @@ import validators
 
 
 def run_storage_and_demo(tmp: Path) -> bool:
-    """Часть 1: данные и миграция CLI-формата.
+    """Часть 1: месяцы, статьи, миграции (в памяти, без файлов данных).
 
-    :param tmp: временная папка, чтобы не трогать пользовательские данные.
+    :param tmp: временная папка.
     :return: True при успехе.
     """
-    budget = demo.build_demo_budget()
-    if models.month_key(0, 1) != "0000-01":  # проверка ключа месяца
+    budget = demo.build_demo_budget("2026-11")
+    if models.month_key(0, 1) != "0000-01":
         return False
-    key = models.month_keys(budget)[0]
-    block = models.ensure_month(budget, key)
+    block = models.ensure_month(budget, "2026-11")
     checks = [
+        ("входящий остаток", models.get_carryover(block) == 15400),
         ("план доходов >= 2", len(block[models.KEY_PLANNED_INCOME]) >= 2),
-        ("план статей >= 4", len(block[models.KEY_PLANNED_ARTICLES]) >= 4),
-        ("факт расходов >= 4", len(block[models.KEY_ACTUAL_EXPENSES]) >= 4),
+        ("план статей >= 5", len(block[models.KEY_PLANNED_ARTICLES]) >= 5),
+        ("факт расходов >= 5", len(block[models.KEY_ACTUAL_EXPENSES]) >= 5),
+        ("все записи двухуровневые", all(models.KEY_GROUP in entry
+                                         for entry in block[models.KEY_ACTUAL_EXPENSES])),
     ]
     for name, ok in checks:
         if not ok:
             print(f"Ошибка: демо-данные неполные ({name}).")
             return False
 
-    # Замена плановой суммы статьи и «нулевое» удаление
-    models.set_planned_article(block, "Транспорт", 5000.0)
-    if not any(e["category"] == "Транспорт" and e["amount"] == 5000.0
-               for e in block[models.KEY_PLANNED_ARTICLES]):
-        print("Ошибка: set_planned_article не заменил сумму.")
+    # Замена плановой суммы подкатегории и удаление нулём
+    models.set_planned_article(block, "Жильё", "Аренда", 99000.0)
+    matching = [e for e in block[models.KEY_PLANNED_ARTICLES]
+                if e["group"] == "Жильё" and e["category"] == "Аренда"]
+    if len(matching) != 1 or matching[0]["amount"] != 99000.0:
+        print("Ошибка: set_planned_article не заменил сумму подкатегории.")
         return False
-    models.set_planned_article(block, "Транспорт", 0.0)
-    if any(e["category"] == "Транспорт" for e in block[models.KEY_PLANNED_ARTICLES]):
-        print("Ошибка: нулевая сумма не удалила статью из плана.")
+    models.set_planned_article(block, "Жильё", "Аренда", 0.0)
+    if any(e["group"] == "Жильё" and e["category"] == "Аренда"
+           for e in block[models.KEY_PLANNED_ARTICLES]):
+        print("Ошибка: нулевая сумма не удалила подкатегорию из плана.")
         return False
 
-    # Миграция CLI-формата: план в корне, mandatory/purchases
+    # Входящий остаток: запись и чтение (в том числе отрицательный)
+    models.set_carryover(block, -2500.0)
+    if models.get_carryover(block) != -2500.0:
+        print("Ошибка: входящий остаток не сохранился.")
+        return False
+
+    # --- Миграция v2 (плоские подкатегории в месяцах) → «Прочее» ---
+    v2_block = {
+        models.KEY_PLANNED_INCOME: [{"source": "Зарплата", "amount": 80000}],
+        models.KEY_PLANNED_ARTICLES: [{"category": "Аренда", "amount": 30000}],
+        models.KEY_ACTUAL_EXPENSES: [
+            {"category": "Аренда", "name": "Квартира", "amount": 30000,
+             "date": "2026-11-05"},
+        ],
+    }
+    moved = models.migrate_flat_entries(v2_block)
+    fact = v2_block[models.KEY_ACTUAL_EXPENSES][0]
+    if fact.get(models.KEY_GROUP) != "Прочее" or fact["category"] != "Аренда":
+        print(f"Ошибка: плоские записи не ушли в «Прочее»: {fact}.")
+        return False
+    if moved != ["Аренда"]:
+        print(f"Ошибка: список перенесённых имён неверный: {moved}.")
+        return False
+    if v2_block[models.KEY_PLANNED_ARTICLES][0]["group"] != "Прочее":
+        print("Ошибка: плоский план не попал в «Прочее».")
+        return False
+
+    # --- Миграция CLI-формата (план/факт в корне) ---
     legacy = {
         "planned_income": [{"source": "Зарплата", "amount": 80000}],
         "planned_expenses": {
-            "mandatory": [{"category": "Жильё", "name": "Аренда", "amount": 30000},
-                          {"category": "Жильё", "name": "ЖКХ", "amount": 6000}],
-            "purchases": [{"category": "Одежда", "name": "Куртка", "amount": 12000}],
+            "mandatory": [{"category": "Аренда", "name": "Квартира", "amount": 30000}],
+            "purchases": [{"category": "Аренда", "name": "Депозит", "amount": 6000}],
         },
-        "actual_expenses": [{"category": "Продукты", "name": "Пятерочка",
+        "actual_expenses": [{"category": "Еда", "name": "Пятерочка",
                              "amount": 1500, "date": "2026-11-05"}],
     }
     migrated = models.migrate_legacy_budget(legacy)
     mkey = models.month_keys(migrated)[0]
     mblock = migrated[models.KEY_MONTHS][mkey]
-    if mblock[models.KEY_PLANNED_INCOME][0]["amount"] != 80000:
-        print("Ошибка: миграция потерял плановый доход.")
+    arenda = next(e for e in mblock[models.KEY_PLANNED_ARTICLES]
+                  if e["category"] == "Аренда")
+    if arenda["group"] != "Прочее" or arenda["amount"] != 36000:  # 30000+6000
+        print(f"Ошибка: CLI-миграция не слила статьи: {arenda}.")
         return False
-    zhilyo = next(e for e in mblock[models.KEY_PLANNED_ARTICLES]
-                  if e["category"] == "Жильё")
-    if zhilyo["amount"] != 36000:  # 30000 + 6000 слились по категории
-        print(f"Ошибка: миграция не слила статьи по категории (получено {zhilyo}).")
-        return False
-    if mblock[models.KEY_ACTUAL_EXPENSES][0]["comment"] != "Пятерочка":
-        print("Ошибка: миграция не превратила name в комментарий.")
+    if mblock[models.KEY_ACTUAL_EXPENSES][0]["category"] != "Еда":
+        print("Ошибка: CLI-миграция потеряла факт.")
         return False
 
-    print("Данные: месяца, статьи, миграция CLI-формата — OK")
+    print("Данные: месяцы, план по подкатегориям, входящий остаток, миграции — OK")
     return True
 
 
 def run_categories(tmp: Path) -> bool:
-    """Часть 2: справочник статей.
+    """Часть 2: двухуровневый справочник (файлы — во временной папке).
 
-    :param tmp: временная папка для файла справочника.
+    :param tmp: временная папка.
     :return: True при успехе.
     """
-    catalog = list(categories.DEFAULT_CATEGORIES)
+    catalog = {g: list(s) for g, s in categories.DEFAULT_CATEGORIES.items()}
     storage_file = tmp / "categories.json"
 
-    if not categories.add_category(catalog, "  Питомцы  ", path=storage_file):
-        print("Ошибка: новая статья не добавилась.")
+    # Добавление группы с подкатегориями и без
+    if categories.add_group(catalog, "Хобби", ["Фото"], path=storage_file) != categories.ADDED:
+        print("Ошибка: новая группа не добавилась.")
         return False
-    for duplicate in ("ПИТОМЦЫ", "  питомцы "):
-        if categories.add_category(catalog, duplicate, path=storage_file):
-            print(f"Ошибка: дубликат {duplicate!r} прошёл проверку.")
+    if catalog["Хобби"] != ["Фото"] or not storage_file.exists():
+        print("Ошибка: группа с подкатегориями не сохранилась в файл.")
+        return False
+    if categories.add_group(catalog, "Туризм", None, path=storage_file) != categories.ADDED:
+        print("Ошибка: пустая группа не добавилась.")
+        return False
+    # Дубликаты группы: без учёта регистра и с обрезкой
+    for duplicate in ("хобби", "  ТУРИЗМ "):
+        if categories.add_group(catalog, duplicate, None, path=storage_file) != categories.DUPLICATE:
+            print(f"Ошибка: дубликат группы {duplicate!r} прошёл проверку.")
             return False
-    if categories.category_color_index(catalog, "Питомцы") != len(catalog) - 1:
-        print("Ошибка: индекс новой статьи в справочнике определён неверно.")
+    # Дубликаты подкатегорий, несуществующая группа
+    if categories.add_subcategory(catalog, "Хобби", "фото", path=storage_file) != categories.DUPLICATE:
+        print("Ошибка: дубликат подкатегории прошёл проверку.")
+        return False
+    if categories.add_subcategory(catalog, "Нет такой группы", "Разное", path=storage_file) != categories.NO_GROUP:
+        print("Ошибка: подкатегория добавилась в несуществующую группу.")
+        return False
+    if categories.add_subcategory(catalog, "Хобби", "  Велосипед  ", path=storage_file) != categories.ADDED:
+        print("Ошибка: новая подкатегория не добавилась.")
         return False
 
-    storage_file.write_text("{ это не json", encoding="utf-8")
-    restored = categories.load_categories(path=storage_file)
-    if restored != list(categories.DEFAULT_CATEGORIES):
+    # Плоский старый файл мигрируется: знакомые группы получают дефолтные подкатегории
+    flat_file = tmp / "flat.json"
+    flat_file.write_text(json.dumps(["Жильё", "Продукты", "Кафе"], ensure_ascii=False),
+                         encoding="utf-8")
+    migrated_catalog = categories.load_categories(path=flat_file)
+    if "Жильё" not in migrated_catalog or "Аренда" not in migrated_catalog["Жильё"]:
+        print("Ошибка: плоский файл не мигрировал знакомые группы.")
+        return False
+    if "Продукты" in migrated_catalog or "Кафе" in migrated_catalog:
+        print("Ошибка: незнакомые имена плоского файла не отброшены.")
+        return False
+
+    # Повреждённый файл восстанавливается из дефолта
+    corrupted = tmp / "broken.json"
+    corrupted.write_text("{ это не json", encoding="utf-8")
+    restored = categories.load_categories(path=corrupted)
+    if restored != {g: list(s) for g, s in categories.DEFAULT_CATEGORIES.items()}:
         print("Ошибка: справочник не восстановился из дефолта после порчи файла.")
         return False
 
-    print("Справочник: добавление, дубликаты, цвет по индексу, восстановление — OK")
+    print("Справочник: группы, подкатегории, дубликаты, плоская миграция, дефолт — OK")
+    return True
+
+
+def run_deletion_flow(tmp: Path) -> bool:
+    """Часть 3: удаление статей с переносом записей (models + categories).
+
+    :param tmp: временная папка.
+    :return: True при успехе.
+    """
+    catalog = {g: list(s) for g, s in categories.DEFAULT_CATEGORIES.items()}
+    cats_file = tmp / "test-catalog.json"  # чтобы не трогать данные пользователя
+    budget = demo.build_demo_budget("2026-12")  # там факты по Жильё
+
+    # Жильё: план — Аренда, Коммуналка (2 записи); факт — Аренда,
+    # Коммуналка, Ремонт (3 записи). Аренда: план+факт = 2.
+    used_plan = models.count_article_usage(budget, "Жильё", "Аренда")
+    used_total = models.count_article_usage(budget, "Жильё")
+    if used_plan != 2 or used_total != 5:
+        print(f"Ошибка: подсчёт использований неверный: {used_plan}/{used_total}.")
+        return False
+
+    # Удаление подкатегории с данными → перенос в «Прочее»
+    moved = models.relocate_article_entries(budget, "Жильё", "Аренда")
+    if moved != ["Жильё·Аренда"]:
+        print(f"Ошибка: подпись переноса неверная: {moved}.")
+        return False
+    categories.add_subcategory(catalog, "Прочее", moved[0], path=None)
+    if categories.remove_subcategory(catalog, "Жильё", "Аренда",
+                                     path=cats_file) != categories.REMOVED:
+        print("Ошибка: подкатегория не удалилась.")
+        return False
+    rest = [e for block in budget["months"].values()
+            for e in block[models.KEY_ACTUAL_EXPENSES] if e["group"] == "Прочее"]
+    if not rest or rest[0]["category"] != "Жильё·Аренда":
+        print(f"Ошибка: записи подкатегории не перенеслись в «Прочее»: {rest}.")
+        return False
+
+    # Удаление группы целиком → подпись «Жильё»
+    moved = models.relocate_article_entries(budget, "Жильё")
+    if moved != ["Жильё"]:
+        print(f"Ошибка: подпись переноса группы неверная: {moved}.")
+        return False
+    if categories.remove_group(catalog, "Жильё",
+                               path=cats_file) != categories.REMOVED:
+        print("Ошибка: группа не удалилась.")
+        return False
+
+    print("Удаление статей: подсчёт записей, перенос в «Прочее» — OK")
     return True
 
 
 def run_reports_and_charts(tmp: Path) -> bool:
-    """Часть 3 и 4: отчёт и диаграммы на демо-данных (в памяти и в temp).
+    """Часть 4 и 5: отчёт по группам и обе диаграммы.
 
-    :param tmp: временная папка для PNG, чтобы не смешивать с проектом.
+    :param tmp: временная папка для PNG.
     :return: True при успехе.
     """
-    year, month_num = 2026, 5
-    key = models.month_key(year, month_num)
+    key = "2026-12"
     budget = demo.build_demo_budget(key)
+    catalog = categories.load_categories()
 
-    rows = reports.article_rows(budget, key)
-    zhilyo = next(row for row in rows if row["article"] == "Жильё")
-    if zhilyo["plan"] != 36000 or zhilyo["fact"] != 35200:
-        print(f"Ошибка: план/факт статьи «Жильё» посчитаны неверно: {zhilyo}.")
+    rows = reports.group_rows(budget, key)
+    zhilyo = next(row for row in rows if row["group"] == "Жильё")
+    if zhilyo["plan"] != 36000 or zhilyo["fact"] != 39000:  # 30000+5200+3800
+        print(f"Ошибка: план/факт группы «Жильё» неверны: {zhilyo}.")
         return False
-    if zhilyo["diff"] != 800:  # 36 000 − 35 200
-        print(f"Ошибка: разница план-факт посчитана неверно: {zhilyo}.")
-        return False
-    if zhilyo["percent"] is None or abs(zhilyo["percent"] - 35200 / 36000) > 1e-9:
-        print(f"Ошибка: процент от плана посчитан неверно: {zhilyo}.")
+    if zhilyo["diff"] != -3000 or abs(zhilyo["percent"] - 39000 / 36000) > 1e-9:
+        print(f"Ошибка: разница/процент группы неверны: {zhilyo}.")
         return False
 
-    # Статья без плана, но с фактом — процент-прочерк в текстовом отчёте
+    subs = reports.sub_rows(budget, key, "Жильё")
+    arenda = next(sub for sub in subs if sub["sub"] == "Аренда")
+    if arenda["plan"] != 30000 or arenda["fact"] != 30000 or arenda["diff"] != 0:
+        print(f"Ошибка: подкатегория «Аренда» посчитана неверно: {arenda}.")
+        return False
+    # запись в группу без подкатегории → строка «(без подкатегорий)»
     block = models.ensure_month(budget, key)
     block[models.KEY_ACTUAL_EXPENSES].append(
-        models.make_actual_expense("Прочее", "незапланированное", 100.0,
-                                   f"{key}-15"))
+        models.make_actual_expense("Обучение", "", "Курсы по питону", 12000, f"{key}-15"))
     report_text = reports.format_report(budget, key)
-    pricherk_line = [line for line in report_text.splitlines() if "Прочее" in line]
-    if not pricherk_line or reports.PERCENT_DASH not in pricherk_line[-1]:
-        print(f"Ошибка: при нулевом плане нет прочерка: {pricherk_line}.")
+    if reports.NO_SUBCATEGORY_LABEL not in report_text:
+        print("Ошибка: план-факт группы без подкатегорий не отобразился.")
         return False
 
-    # Пустой месяц — пустой отчёт и «нет данных»
-    empty_key = models.month_key(year, 6)
-    if reports.article_rows(budget, empty_key):
-        print("Ошибка: пустой месяц отдал статьи.")
+    # Проценты в отчёте и итоги
+    if "Развлечения" not in report_text:
+        print("Ошибка: группы нет в текстовом отчёте.")
+        return False
+    totals = reports.expenses_totals(budget, key)
+    # доходы 80 000 + 20 000 + 5 000 = 105 000; план статей = 68 500
+    if totals["balance_plan"] != 105000 - 68500:
+        print(f"Ошибка: остаток посчитан неверно: {totals}.")
+        return False
+
+    empty_key = "2027-01"
+    if reports.group_rows(budget, empty_key):
+        print("Ошибка: пустой месяц отдал группы.")
         return False
     if reports.NO_DATA not in reports.format_report(budget, empty_key):
         print("Ошибка: для пустого месяца нет пометки «нет данных».")
         return False
 
-    catalog = categories.load_categories()
     bar = charts.build_plan_vs_fact(rows, catalog, key,
                                     path=tmp / charts.PLAN_VS_FACT_FILE.name)
     pie = charts.build_actual_expenses_pie(
@@ -172,20 +290,18 @@ def run_reports_and_charts(tmp: Path) -> bool:
     if pie is None or not pie.exists():
         print("Ошибка: круговая диаграмма не построена.")
         return False
-
-    # Пустой факт месяца — pie не строится
     if charts.build_actual_expenses_pie(
             models.ensure_month(budget, empty_key)[models.KEY_ACTUAL_EXPENSES],
             catalog, path=tmp / "empty_pie.png") is not None:
         print("Ошибка: круговая построилась без фактических расходов.")
         return False
 
-    print("Отчёт (план/факт/разница/процент) и обе диаграммы — OK")
+    print("Отчёт по группам (план/факт/разница/процент) и обе диаграммы — OK")
     return True
 
 
 def run_validators() -> bool:
-    """Часть 5: суммы и строки.
+    """Часть 6: суммы и строки.
 
     :return: True при успехе.
     """
@@ -214,6 +330,7 @@ def main() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         ok = (run_storage_and_demo(Path(tmp))
               and run_categories(Path(tmp))
+              and run_deletion_flow(Path(tmp))
               and run_reports_and_charts(Path(tmp))
               and run_validators())
     print("OK" if ok else "FAIL")

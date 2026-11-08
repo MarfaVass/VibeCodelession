@@ -15,6 +15,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
+import categories
 import models
 
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -38,12 +39,61 @@ def _today_month_key() -> str:
     return models.month_key(today.year, today.month)
 
 
+def _needs_flat_migration(data: dict) -> bool:
+    """Есть ли в месяцах записи без ключа «group» (плоские форматы)?
+
+    :param data: структура бюджета.
+    :return: True, если миграция записи требуется.
+    """
+    for block in data[models.KEY_MONTHS].values():
+        for collection in (models.KEY_PLANNED_ARTICLES, models.KEY_ACTUAL_EXPENSES):
+            for entry in block.get(collection, []):
+                if isinstance(entry, dict) and models.KEY_GROUP not in entry:
+                    return True
+    return False
+
+
+def _migrate_flat_month_entries(data: dict) -> None:
+    """Прогнать месяцы через миграцию плоских категорий (v2 → v3).
+
+    Записи без «group» переезжают в «Прочее» как подкатегории; их имена
+    дописываются в справочник, чтобы записи остались выбираемыми.
+
+    :param data: структура бюджета (изменяется на месте).
+    """
+    if not _needs_flat_migration(data):
+        return
+    catalog = categories.load_categories()
+    for key in models.month_keys(data):
+        moved = models.migrate_flat_entries(models.ensure_month(data, key))
+        for name in moved:
+            if name == models.KEY_UNKNOWN_GROUP:
+                continue
+            categories.add_subcategory(catalog, models.KEY_UNKNOWN_GROUP, name,
+                                       path=None)
+    categories.save_categories(catalog)
+    save_budget(data)
+
+
+def _migrate_legacy_top_level(data: dict) -> dict:
+    """Миграция CLI-формата (план/факт в корне) → формат по месяцам.
+
+    :param data: словарь CLI-формата.
+    :return: структура бюджета нового формата.
+    """
+    budget = models.migrate_legacy_budget(data)
+    print("Данные старого CLI-формата перенесены в текущий месяц "
+          "(плоские категории — в группу «Прочее»).", file=sys.stderr)
+    return budget
+
+
 def load_budget() -> dict:
-    """Загрузить бюджет, приводя всё к формату по месяцам.
+    """Загрузить бюджет, приводя всё к формату по месяцам с группами.
 
     Нет файла или файл повреждён — создаётся новый пустой бюджет
     (испорченный переносится в data/budget.corrupt.json). Данные
-    CLI-версии автоматически переносятся в текущий месяц.
+    CLI-версии (план/факт в корне) автоматически переносятся в текущий
+    месяц, записи с плоскими категориями — в группу «Прочее».
 
     :return: структура бюджета {months: {«YYYY-MM»: блок}}.
     """
@@ -71,10 +121,11 @@ def load_budget() -> dict:
     if models.is_valid_budget(data):
         for key in list(data[models.KEY_MONTHS]):
             models.ensure_month(data, key)
+        _migrate_flat_month_entries(data)
         return data
 
-    if data:  # словарь без «months» — вероятно, данные CLI-версии
-        budget = models.migrate_legacy_budget(data)
+    if data:  # словарь без «months» — данные CLI-версии
+        budget = _migrate_legacy_top_level(data)
         save_budget(budget)
         return budget
 
