@@ -18,4 +18,4 @@ password_manager/password.db
 password_manager/.key
 
 # Homework 08: временная папка рендера скриншотов (пересоздаётся скриптом)
-homework_08_notes/_render/
+reports/homework_08_notes/_render/
