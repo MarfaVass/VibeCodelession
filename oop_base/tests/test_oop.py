@@ -69,6 +69,36 @@ class TaskTests(unittest.TestCase):
         self.task.complete()
         self.assertEqual(self.task.status, "done")
 
+    def test_title_and_description_wrong_type_raises(self):
+        for bad_title in (None, 123, ["название"]):
+            with self.assertRaises(ValueError):
+                Task(bad_title, "Описание", 20)
+        for bad_desc in (None, 123, ["описание"]):
+            with self.assertRaises(ValueError):
+                Task("Название", bad_desc, 21)
+
+    def test_change_description_wrong_type_raises(self):
+        for bad in (None, 123, ["описание"]):
+            with self.assertRaises(ValueError):
+                self.task.change_description(bad)
+
+    def test_change_due_date_bad_value_raises_and_keeps_old(self):
+        old = self.task.due_date
+        for bad in ("2026-02-30", "2026-11-32", 123, 20261120):
+            with self.assertRaises(ValueError):
+                self.task.change_due_date(bad)
+        self.assertEqual(self.task.due_date, old)
+
+    def test_set_status_wrong_type_raises(self):
+        for bad in (None, 123, True):
+            with self.assertRaises(ValueError):
+                self.task.set_status(bad)
+
+    def test_readonly_properties_cannot_be_assigned(self):
+        for attr, value in (("title", "новое"), ("description", "новое"), ("status", "done"), ("id", 99)):
+            with self.assertRaises(AttributeError):
+                setattr(self.task, attr, value)
+
 
 class ProjectTests(unittest.TestCase):
     """Проверяем проект: задачи, ID, прогресс, поиск и удаление."""
@@ -162,6 +192,35 @@ class ProjectTests(unittest.TestCase):
         snapshot.clear()  # пытаемся испортить список снаружи
         self.assertEqual(len(self.project.tasks), 1)
 
+    def test_add_task_empty_description_raises(self):
+        with self.assertRaises(ValueError):
+            self.project.add_task("Название", "")
+
+    def test_task_counters_independent_between_projects(self):
+        """Задачи разных проектов стартуют с ID 1: счетчик — на уровне экземпляра."""
+        other = Project("Второй проект")
+        task1 = self.project.add_task("A", "Описание")
+        task2 = other.add_task("B", "Описание")
+        self.assertEqual(task1.id, 1)
+        self.assertEqual(task2.id, 1)
+        self.assertEqual(other.get_task_by_id(1), task2)
+
+    def test_task_id_not_reused_after_removal(self):
+        """Удаление задачи не возвращает ее ID новым задачам."""
+        first = self.project.add_task("A", "Описание")
+        self.project.remove_task(first.id)
+        second = self.project.add_task("B", "Описание")
+        self.assertNotEqual(first.id, second.id)
+        self.assertEqual(second.id, 2)
+
+    def test_bool_task_id_rejected(self):
+        """bool — подкласс int, но как ID задача не принимается."""
+        self.project.add_task("A", "Описание")
+        with self.assertRaises(ValueError):
+            self.project.get_task_by_id(True)
+        with self.assertRaises(ValueError):
+            self.project.remove_task(False)
+
 
 class UserTests(unittest.TestCase):
     """Проверяем пользователя: проекты, поиск, дубликаты, удаление."""
@@ -183,10 +242,24 @@ class UserTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.user.create_project("  ")
 
+    def test_create_project_wrong_type_raises(self):
+        """Название проверяет конструктор Project, а не приватный метод User."""
+        for bad in (None, 123, ["Дом"]):
+            with self.assertRaises(ValueError):
+                self.user.create_project(bad)
+
     def test_duplicate_project_name_raises(self):
         self.user.create_project("Отпуск")
         with self.assertRaises(ValueError):
             self.user.create_project("Отпуск")
+
+    def test_duplicate_creation_does_not_consume_project_id(self):
+        """Неудачная попытка создать дубликат не расходует ID проекта."""
+        first = self.user.create_project("Отпуск")
+        with self.assertRaises(ValueError):
+            self.user.create_project("Отпуск")
+        second = self.user.create_project("Дом")
+        self.assertEqual(second.id, first.id + 1)  # без пропуска ID
 
     def test_add_project_checks_type_and_duplicates(self):
         with self.assertRaises(ValueError):
@@ -216,6 +289,14 @@ class UserTests(unittest.TestCase):
     def test_remove_missing_project_raises_key_error(self):
         with self.assertRaises(KeyError):
             self.user.remove_project(123)
+
+    def test_bool_project_id_rejected(self):
+        """bool — подкласс int, но как ID проекта не принимается."""
+        self.user.create_project("Дом")
+        with self.assertRaises(ValueError):
+            self.user.get_project_by_id(True)
+        with self.assertRaises(ValueError):
+            self.user.remove_project(False)
 
     def test_projects_property_returns_copy(self):
         self.user.create_project("Дом")

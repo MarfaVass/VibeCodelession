@@ -12,6 +12,7 @@
 Запуск: python main.py
 """
 
+
 import re
 from datetime import date
 
@@ -193,7 +194,8 @@ class Project:
 
     def get_task_by_id(self, task_id):
         """Найти задачу по ID. Если задачи нет — вернёт None."""
-        if not isinstance(task_id, int):
+        # bool — подкласс int в Python, поэтому исключаем его явно.
+        if isinstance(task_id, bool) or not isinstance(task_id, int):
             raise ValueError("ID задачи: ожидается целое число")
         for task in self._tasks:
             if task.id == task_id:
@@ -202,7 +204,8 @@ class Project:
 
     def remove_task(self, task_id):
         """Удалить задачу по ID. Если задачи нет — KeyError."""
-        if not isinstance(task_id, int):
+        # bool — подкласс int в Python, поэтому исключаем его явно.
+        if isinstance(task_id, bool) or not isinstance(task_id, int):
             raise ValueError("ID задачи: ожидается целое число")
         for task in self._tasks:
             if task.id == task_id:
@@ -267,8 +270,12 @@ class User:
     # --- действия ----------------------------------------------------------
 
     def create_project(self, name):
-        """Создать проект с проверкой на дубликат названия и добавить в список."""
-        Project._check_name(name)
+        """Создать проект с проверкой на дубликат названия и добавить в список.
+
+        Сначала проверяется дубликат (чтобы неудачная попытка не расходовала
+        ID проекта), затем объект создается конструктором Project — проверку
+        самого названия делает он, без обращения к приватным методам.
+        """
         if self.find_project_by_name(name) is not None:
             raise ValueError(f"Проект с названием «{name}» уже существует у пользователя «{self._name}»")
         project = Project(name)
@@ -286,7 +293,8 @@ class User:
 
     def get_project_by_id(self, project_id):
         """Найти проект по ID. Если проекта нет — вернёт None."""
-        if not isinstance(project_id, int):
+        # bool — подкласс int в Python, поэтому исключаем его явно.
+        if isinstance(project_id, bool) or not isinstance(project_id, int):
             raise ValueError("ID проекта: ожидается целое число")
         for project in self._projects:
             if project.id == project_id:
@@ -302,7 +310,8 @@ class User:
 
     def remove_project(self, project_id):
         """Удалить проект по ID. Если проекта нет — KeyError."""
-        if not isinstance(project_id, int):
+        # bool — подкласс int в Python, поэтому исключаем его явно.
+        if isinstance(project_id, bool) or not isinstance(project_id, int):
             raise ValueError("ID проекта: ожидается целое число")
         for project in self._projects:
             if project.id == project_id:
@@ -328,6 +337,11 @@ def demo():
         print("\n1) Создан пользователь:", user.info)
     except ValueError as error:
         print("Ошибка:", error)
+
+    try:
+        User("   ")  # некорректное имя пользователя
+    except ValueError as error:
+        print("   Попытка создать пользователя с пустым именем -> ValueError:", error)
 
     project_course = user.create_project("Курс вайб-кодинга")
     project_repair = user.create_project("Ремонт")
