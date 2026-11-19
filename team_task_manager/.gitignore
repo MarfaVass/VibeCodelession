@@ -1,0 +1,33 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# --- Виртуальное окружение ---
+.venv/
+venv/
+
+# --- Конфигурация с секретами (токен администратора) ---
+.env
+
+# --- Данные приложения ---
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+
+# --- Экспорт, бэкапы, логи ---
+exports/*
+!exports/.gitkeep
+backups/*
+!backups/.gitkeep
+logs/*
+!logs/.gitkeep
+
+# --- Прочее ---
+*.xlsx
+*.csv
+Thumbs.db
