@@ -233,11 +233,31 @@ aiogram FSMContext — рабочая база `data/tasks.db` недостиж�
 
 ## Скриншоты
 
-| | |
-|---|---|
-| ![Главное меню](../reports/screenshots/homework_10_team_task/06_main_menu.png) | ![Список задач](../reports/screenshots/homework_10_team_task/07_task_list.png) |
-| ![Создание задачи](../reports/screenshots/homework_10_team_task/08_fsm_creation.png) | ![Экспорт через меню](../reports/screenshots/homework_10_team_task/09_export_menu_docs.png) |
-| ![CSV в Excel](../reports/screenshots/homework_10_team_task/10_csv_in_excel.png) | ![XLSX в Excel](../reports/screenshots/homework_10_team_task/11_xlsx_in_excel.png) |
+**Главное меню после `/start`** (для администратора — с «⚙️ Админ-панель»):
+
+![Главное меню](../reports/screenshots/homework_10_team_task/06_main_menu.png)
+
+**Просмотр задач** («Все задачи», пагинация, кнопка открытия карточки):
+
+![Список задач](../reports/screenshots/homework_10_team_task/07_task_list.png)
+
+**Создание задачи по шагам** (FSM; видно уведомление об отмене
+незавершённого сценария при возврате в меню):
+
+![Создание задачи](../reports/screenshots/homework_10_team_task/08_fsm_creation.png)
+
+**Экспорт через меню** — кнопки «📄 Скачать CSV» / «📊 Скачать Excel»
+и полученные в чат документы `tasks_….csv` / `tasks_….xlsx`:
+
+![Экспорт через меню](../reports/screenshots/homework_10_team_task/09_export_menu_docs.png)
+
+**CSV, открытый в Excel** (UTF-8 BOM, разделитель «;» — кириллица читается сразу):
+
+![CSV в Excel](../reports/screenshots/homework_10_team_task/10_csv_in_excel.png)
+
+**XLSX в Excel** (лист ЗАДАЧИ: шапка, автофильтр, подсветка приоритета):
+
+![XLSX в Excel](../reports/screenshots/homework_10_team_task/11_xlsx_in_excel.png)
 
 Полный набор (структура проекта, ключевой код, прогоны тестов, журнал бота) —
 в `reports/screenshots/homework_10_team_task/`, детальный отчёт по проекту —
