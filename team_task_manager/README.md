@@ -231,6 +231,18 @@ pytest tests/test_navigation.py   # один модуль
 Тесты работают с временной БД в каталоге ОС (`tmp_path`) и настоящим
 aiogram FSMContext — рабочая база `data/tasks.db` недостижима из тестов.
 
+## Скриншоты
+
+| | |
+|---|---|
+| ![Главное меню](../reports/screenshots/homework_10_team_task/06_main_menu.png) | ![Список задач](../reports/screenshots/homework_10_team_task/07_task_list.png) |
+| ![Создание задачи](../reports/screenshots/homework_10_team_task/08_fsm_creation.png) | ![Экспорт через меню](../reports/screenshots/homework_10_team_task/09_export_menu_docs.png) |
+| ![CSV в Excel](../reports/screenshots/homework_10_team_task/10_csv_in_excel.png) | ![XLSX в Excel](../reports/screenshots/homework_10_team_task/11_xlsx_in_excel.png) |
+
+Полный набор (структура проекта, ключевой код, прогоны тестов, журнал бота) —
+в `reports/screenshots/homework_10_team_task/`, детальный отчёт по проекту —
+в [../reports/homework_10_team_task/homework_10_team_task.md](../reports/homework_10_team_task/homework_10_team_task.md).
+
 ## Текущее состояние и ограничения
 
 Проект завершён и принят (этапы: экспорт файлов, навигация). Реализованные
@@ -240,7 +252,13 @@ aiogram FSMContext — рабочая база `data/tasks.db` недостиж�
 - развитие административной панели;
 - интерактивный календарь для установки дедлайнов;
 - аналитический дашборд с вкладками «Обзор»/«Динамика»/«Нагрузка», периодами
-  и разграничением статистики ADMIN/MEMBER.
+  и разграничением статистики ADMIN/MEMBER;
+- обсуждаемые кандидаты сверх BACKLOG (полный перечень со статусом —
+  в [BACKLOG.md](BACKLOG.md) и отчёте): напоминания о дедлайнах, утренний
+  дайджест, эскалация просрочек, комментарии и вложения к задачам, шаблоны,
+  сортировка и фильтрованный экспорт, импорт из CSV/XLSX, ICS-экспорт,
+  автоотправка резервных копий, код приглашения, работа в группе,
+  подтверждение выполнения.
 
 Ограничения по архитектуре (осознанные): SQLite — единственный источник
 данных; PostgreSQL, Docker, веб-панель, Google Sheets и двусторонняя
