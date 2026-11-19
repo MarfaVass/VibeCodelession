@@ -1,0 +1,462 @@
+<!doctype html><meta charset='utf-8'><style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#1e1e1e; font-family:Consolas,'Cascadia Mono',monospace; }
+.shot { width:980px; border-radius:8px; overflow:hidden; margin:0 auto 40px;
+        box-shadow:0 8px 32px rgba(0,0,0,.55); }
+.bar { height:34px; background:#3c3c3c; display:flex; align-items:center;
+       padding-left:14px; }
+.dot { width:12px; height:12px; border-radius:50%; margin-right:8px; }
+.filetab { height:30px; background:#2d2d2d; display:flex; align-items:center;
+           padding-left:16px; border-top:1px solid #252526; }
+.filetab .active { background:#1e1e1e; color:#e8e8e8; padding:6px 16px;
+                   font-size:12.5px; border-top:1px solid #0e639c; }
+.codearea { background:#1e1e1e; padding:12px 0; font-size:13.5px;
+            line-height:19px; }
+.lrow { display:flex; }
+.ln { width:52px; text-align:right; padding-right:18px; color:#858585;
+      flex:none; user-select:none; }
+.code { color:#d4d4d4; white-space:pre; }
+.term { background:#0c0c0c; font-size:13px; line-height:19px;
+        padding:12px 18px; }
+.term pre { color:#cccccc; white-space:pre-wrap; word-break:break-word;
+            font-family:inherit; }
+.titletab { height:36px; background:#2b2b2b; display:flex; align-items:center;
+            padding-left:16px; color:#cccccc; font-size:12.5px; }
+/* окно проводника */
+.explorer { background:#252526; padding:10px 0; font-size:13px;
+            line-height:22px; }
+.explorer .row { color:#cccccc; white-space:pre; }
+.explorer .dir { color:#75beff; }
+.explorer .file { color:#d4d4d4; }
+.explorer .skip { color:#6a737d; }
+</style><body style='background:#1e1e1e;padding:20px'><div class="shot" id="shot-tree"><div class="titletab">Проводник — C:\…\VIBE-Coder\Курс\team_task_manager</div><div class="explorer"><div class="row"><span class="dir">team_task_manager/</span></div><div class="row"><span class="dir">├── app/</span></div><div class="row"><span class="dir">│   ├── config/</span></div><div class="row"><span class="file">│   │   ├── __init__.py</span></div><div class="row"><span class="file">│   │   └── settings.py</span></div><div class="row"><span class="skip">│   │   …   (не показаны: __pycache__)</span></div><div class="row"><span class="dir">│   ├── database/</span></div><div class="row"><span class="dir">│   │   ├── repositories/</span></div><div class="row"><span class="file">│   │   │   ├── __init__.py</span></div><div class="row"><span class="file">│   │   │   ├── settings.py</span></div><div class="row"><span class="file">│   │   │   ├── tasks.py</span></div><div class="row"><span class="file">│   │   │   └── users.py</span></div><div class="row"><span class="skip">│   │   │   …   (не показаны: __pycache__)</span></div><div class="row"><span class="file">│   │   ├── __init__.py</span></div><div class="row"><span class="file">│   │   ├── database.py</span></div><div class="row"><span class="file">│   │   ├── migrations.py</span></div><div class="row"><span class="file">│   │   └── models.py</span></div><div class="row"><span class="skip">│   │   …   (не показаны: __pycache__)</span></div><div class="row"><span class="dir">│   ├── handlers/</span></div><div class="row"><span class="file">│   │   ├── __init__.py</span></div><div class="row"><span class="file">│   │   ├── admin.py</span></div><div class="row"><span class="file">│   │   ├── exports.py</span></div><div class="row"><span class="file">│   │   ├── help.py</span></div><div class="row"><span class="file">│   │   ├── helpers.py</span></div><div class="row"><span class="file">│   │   ├── lists.py</span></div><div class="row"><span class="file">│   │   ├── start.py</span></div><div class="row"><span class="file">│   │   ├── statistics.py</span></div><div class="row"><span class="file">│   │   ├── task_management.py</span></div><div class="row"><span class="file">│   │   └── tasks.py</span></div><div class="row"><span class="skip">│   │   …   (не показаны: __pycache__)</span></div><div class="row"><span class="dir">│   ├── keyboards/</span></div><div class="row"><span class="file">│   │   ├── __init__.py</span></div><div class="row"><span class="file">│   │   ├── admin_keyboards.py</span></div><div class="row"><span class="file">│   │   ├── main_menu.py</span></div><div class="row"><span class="file">│   │   └── task_keyboards.py</span></div><div class="row"><span class="skip">│   │   …   (не показаны: __pycache__)</span></div><div class="row"><span class="dir">│   ├── middlewares/</span></div><div class="row"><span class="file">│   │   ├── __init__.py</span></div><div class="row"><span class="file">│   │   └── access_control.py</span></div><div class="row"><span class="skip">│   │   …   (не показаны: __pycache__)</span></div><div class="row"><span class="dir">│   ├── services/</span></div><div class="row"><span class="file">│   │   ├── __init__.py</span></div><div class="row"><span class="file">│   │   ├── backup_service.py</span></div><div class="row"><span class="file">│   │   ├── notification_service.py</span></div><div class="row"><span class="file">│   │   ├── statistics_service.py</span></div><div class="row"><span class="file">│   │   └── task_service.py</span></div><div class="row"><span class="skip">│   │   …   (не показаны: __pycache__)</span></div><div class="row"><span class="dir">│   ├── states/</span></div><div class="row"><span class="file">│   │   ├── __init__.py</span></div><div class="row"><span class="file">│   │   └── task_states.py</span></div><div class="row"><span class="skip">│   │   …   (не показаны: __pycache__)</span></div><div class="row"><span class="dir">│   ├── utils/</span></div><div class="row"><span class="file">│   │   ├── __init__.py</span></div><div class="row"><span class="file">│   │   ├── dates.py</span></div><div class="row"><span class="file">│   │   ├── logger.py</span></div><div class="row"><span class="file">│   │   └── validators.py</span></div><div class="row"><span class="skip">│   │   …   (не показаны: __pycache__)</span></div><div class="row"><span class="file">│   └── __init__.py</span></div><div class="row"><span class="skip">│   …   (не показаны: __pycache__, exports)</span></div><div class="row"><span class="dir">├── reports/</span></div><div class="row"><span class="file">│   └── final_project_report.md</span></div><div class="row"><span class="dir">├── tests/</span></div><div class="row"><span class="file">│   ├── conftest.py</span></div><div class="row"><span class="file">│   ├── test_database.py</span></div><div class="row"><span class="file">│   ├── test_export_handlers.py</span></div><div class="row"><span class="file">│   ├── test_exports.py</span></div><div class="row"><span class="file">│   ├── test_navigation.py</span></div><div class="row"><span class="file">│   ├── test_permissions.py</span></div><div class="row"><span class="file">│   └── test_tasks.py</span></div><div class="row"><span class="skip">│   …   (не показаны: __pycache__)</span></div><div class="row"><span class="skip">├── .env</span></div><div class="row"><span class="file">├── .env.example</span></div><div class="row"><span class="file">├── .gitignore</span></div><div class="row"><span class="file">├── BACKLOG.md</span></div><div class="row"><span class="file">├── main.py</span></div><div class="row"><span class="file">├── prompt_extracted.txt</span></div><div class="row"><span class="file">├── pytest.ini</span></div><div class="row"><span class="file">├── README.md</span></div><div class="row"><span class="file">├── requirements.txt</span></div><div class="row"><span class="file">└── Промпт.docx</span></div><div class="row"><span class="skip">…   (не показаны: .pytest_cache, .venv, __pycache__, backups)</span></div></div></div><div class="shot" id="shot-main"><div class="bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span></div><div class="filetab"><span class="active">team_task_manager/main.py</span></div><div class="codearea"><div class="lrow"><span class="ln">1</span><span class="code"><span style="color:#ce9178">&quot;&quot;&quot;Точка входа TEAM TASK MANAGER.</span></div>
+<div class="lrow"><span class="ln">2</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">3</span><span class="code">Порядок запуска:</span></div>
+<div class="lrow"><span class="ln">4</span><span class="code">  1. Загрузка настроек из .env (проверка обязательных значений).</span></div>
+<div class="lrow"><span class="ln">5</span><span class="code">  2. Настройка логирования (logs/app.log с ротацией).</span></div>
+<div class="lrow"><span class="ln">6</span><span class="code">  3. Подключение к SQLite, миграции, резервная копия при первом запуске.</span></div>
+<div class="lrow"><span class="ln">7</span><span class="code">  4. Сборка бота aiogram 3: роутеры, middleware доступа, workflow-данные.</span></div>
+<div class="lrow"><span class="ln">8</span><span class="code">  5. Запуск polling с повторами при временных сетевых ошибках.</span></div>
+<div class="lrow"><span class="ln">9</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">10</span><span class="code">Бот не запустится, если BOT_TOKEN или ADMIN_IDS не заполнены.</span></div>
+<div class="lrow"><span class="ln">11</span><span class="code">&quot;&quot;&quot;</span></span></div>
+<div class="lrow"><span class="ln">12</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">13</span><span class="code"><span style="color:#569cd6">from</span> __future__ <span style="color:#569cd6">import</span> annotations</span></div>
+<div class="lrow"><span class="ln">14</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">15</span><span class="code"><span style="color:#569cd6">import</span> asyncio</span></div>
+<div class="lrow"><span class="ln">16</span><span class="code"><span style="color:#569cd6">import</span> logging</span></div>
+<div class="lrow"><span class="ln">17</span><span class="code"><span style="color:#569cd6">import</span> sys</span></div>
+<div class="lrow"><span class="ln">18</span><span class="code"><span style="color:#569cd6">from</span> pathlib <span style="color:#569cd6">import</span> Path</span></div>
+<div class="lrow"><span class="ln">19</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">20</span><span class="code"><span style="color:#569cd6">from</span> aiogram <span style="color:#569cd6">import</span> Bot, Dispatcher</span></div>
+<div class="lrow"><span class="ln">21</span><span class="code"><span style="color:#569cd6">from</span> aiogram.client.default <span style="color:#569cd6">import</span> DefaultBotProperties</span></div>
+<div class="lrow"><span class="ln">22</span><span class="code"><span style="color:#569cd6">from</span> aiogram.dispatcher.dispatcher <span style="color:#569cd6">import</span> BackoffConfig</span></div>
+<div class="lrow"><span class="ln">23</span><span class="code"><span style="color:#569cd6">from</span> aiogram.enums <span style="color:#569cd6">import</span> ParseMode</span></div>
+<div class="lrow"><span class="ln">24</span><span class="code"><span style="color:#569cd6">from</span> aiogram.types <span style="color:#569cd6">import</span> BotCommand, ErrorEvent</span></div>
+<div class="lrow"><span class="ln">25</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">26</span><span class="code"><span style="color:#6a9955"># Корень проекта = каталог, где лежит main.py.</span></span></div>
+<div class="lrow"><span class="ln">27</span><span class="code">PROJECT_ROOT = Path(__file__).resolve().parent</span></div>
+<div class="lrow"><span class="ln">28</span><span class="code">sys.path.insert(<span style="color:#b5cea8">0</span>, <span style="color:#dcdcaa">str</span>(PROJECT_ROOT))</span></div>
+<div class="lrow"><span class="ln">29</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">30</span><span class="code"><span style="color:#569cd6">from</span> app.config.settings <span style="color:#569cd6">import</span> load_settings  <span style="color:#6a9955"># noqa: E402</span></span></div>
+<div class="lrow"><span class="ln">31</span><span class="code"><span style="color:#569cd6">from</span> app.database.database <span style="color:#569cd6">import</span> Database  <span style="color:#6a9955"># noqa: E402</span></span></div>
+<div class="lrow"><span class="ln">32</span><span class="code"><span style="color:#569cd6">from</span> app.database.migrations <span style="color:#569cd6">import</span> migrate  <span style="color:#6a9955"># noqa: E402</span></span></div>
+<div class="lrow"><span class="ln">33</span><span class="code"><span style="color:#569cd6">from</span> app.database.repositories.settings <span style="color:#569cd6">import</span> SettingsRepository  <span style="color:#6a9955"># noqa: E402</span></span></div>
+<div class="lrow"><span class="ln">34</span><span class="code"><span style="color:#569cd6">from</span> app.database.repositories.users <span style="color:#569cd6">import</span> UserRepository  <span style="color:#6a9955"># noqa: E402</span></span></div>
+<div class="lrow"><span class="ln">35</span><span class="code"><span style="color:#569cd6">from</span> app.middlewares.access_control <span style="color:#569cd6">import</span> AccessControlMiddleware  <span style="color:#6a9955"># noqa: E402</span></span></div>
+<div class="lrow"><span class="ln">36</span><span class="code"><span style="color:#569cd6">from</span> app.services.backup_service <span style="color:#569cd6">import</span> BackupService  <span style="color:#6a9955"># noqa: E402</span></span></div>
+<div class="lrow"><span class="ln">37</span><span class="code"><span style="color:#569cd6">from</span> app.services.statistics_service <span style="color:#569cd6">import</span> StatisticsService  <span style="color:#6a9955"># noqa: E402</span></span></div>
+<div class="lrow"><span class="ln">38</span><span class="code"><span style="color:#569cd6">from</span> app.services.task_service <span style="color:#569cd6">import</span> TaskService  <span style="color:#6a9955"># noqa: E402</span></span></div>
+<div class="lrow"><span class="ln">39</span><span class="code"><span style="color:#569cd6">from</span> app.utils.logger <span style="color:#569cd6">import</span> setup_logging  <span style="color:#6a9955"># noqa: E402</span></span></div>
+<div class="lrow"><span class="ln">40</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">41</span><span class="code">logger = logging.getLogger(__name__)</span></div>
+<div class="lrow"><span class="ln">42</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">43</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">44</span><span class="code"><span style="color:#569cd6">def</span> build_dispatcher(db: Database, settings) -&gt; Dispatcher:</span></div>
+<div class="lrow"><span class="ln">45</span><span class="code">    <span style="color:#ce9178">&quot;&quot;&quot;Собирает диспетчер: сервисы, роутеры, middleware.&quot;&quot;&quot;</span></span></div>
+<div class="lrow"><span class="ln">46</span><span class="code">    dp = Dispatcher()</span></div>
+<div class="lrow"><span class="ln">47</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">48</span><span class="code">    <span style="color:#6a9955"># --- Сервисы: передаются обработчикам как именованные аргументы ---</span></span></div>
+<div class="lrow"><span class="ln">49</span><span class="code">    task_service = TaskService(db)</span></div>
+<div class="lrow"><span class="ln">50</span><span class="code">    statistics_service = StatisticsService(db)</span></div>
+<div class="lrow"><span class="ln">51</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">52</span><span class="code">    dp.workflow_data.update(</span></div>
+<div class="lrow"><span class="ln">53</span><span class="code">        db=db,</span></div>
+<div class="lrow"><span class="ln">54</span><span class="code">        task_service=task_service,</span></div>
+<div class="lrow"><span class="ln">55</span><span class="code">        statistics_service=statistics_service,</span></div>
+<div class="lrow"><span class="ln">56</span><span class="code">        settings_repo=SettingsRepository(db),</span></div>
+<div class="lrow"><span class="ln">57</span><span class="code">        users_repo=UserRepository(db),</span></div>
+<div class="lrow"><span class="ln">58</span><span class="code">        timezone_name=settings.timezone,</span></div>
+<div class="lrow"><span class="ln">59</span><span class="code">    )</span></div>
+<div class="lrow"><span class="ln">60</span><span class="code">    <span style="color:#6a9955"># Сервис уведомлений импортируется здесь, чтобы не зациклить модули.</span></span></div>
+<div class="lrow"><span class="ln">61</span><span class="code">    <span style="color:#569cd6">from</span> app.services.notification_service <span style="color:#569cd6">import</span> NotificationService  <span style="color:#6a9955"># noqa: E402</span></span></div>
+<div class="lrow"><span class="ln">62</span><span class="code">    dp.workflow_data[<span style="color:#ce9178">&quot;notification_service&quot;</span>] = NotificationService(db)</span></div>
+<div class="lrow"><span class="ln">63</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">64</span><span class="code">    <span style="color:#6a9955"># --- Роутеры (порядок важен: сначала узкие, потом широкие) ---</span></span></div>
+<div class="lrow"><span class="ln">65</span><span class="code">    <span style="color:#569cd6">from</span> app.handlers <span style="color:#569cd6">import</span> (  <span style="color:#6a9955"># noqa: E402</span></span></div>
+<div class="lrow"><span class="ln">66</span><span class="code">        admin,</span></div>
+<div class="lrow"><span class="ln">67</span><span class="code">        exports,</span></div>
+<div class="lrow"><span class="ln">68</span><span class="code">        help <span style="color:#569cd6">as</span> help_module,</span></div>
+<div class="lrow"><span class="ln">69</span><span class="code">        lists,</span></div>
+<div class="lrow"><span class="ln">70</span><span class="code">        start,</span></div>
+<div class="lrow"><span class="ln">71</span><span class="code">        statistics,</span></div>
+<div class="lrow"><span class="ln">72</span><span class="code">        task_management,</span></div>
+<div class="lrow"><span class="ln">73</span><span class="code">        tasks,</span></div>
+<div class="lrow"><span class="ln">74</span><span class="code">    )</span></div>
+<div class="lrow"><span class="ln">75</span><span class="code">    dp.include_routers(</span></div>
+<div class="lrow"><span class="ln">76</span><span class="code">        start.router,</span></div>
+<div class="lrow"><span class="ln">77</span><span class="code">        help_module.router,</span></div>
+<div class="lrow"><span class="ln">78</span><span class="code">        tasks.router,          <span style="color:#6a9955"># создание задачи (FSM)</span></span></div>
+<div class="lrow"><span class="ln">79</span><span class="code">        task_management.router,<span style="color:#6a9955"># карточка/статусы/редактирование</span></span></div>
+<div class="lrow"><span class="ln">80</span><span class="code">        lists.router,          <span style="color:#6a9955"># списки и фильтры</span></span></div>
+<div class="lrow"><span class="ln">81</span><span class="code">        statistics.router,</span></div>
+<div class="lrow"><span class="ln">82</span><span class="code">        exports.router,</span></div>
+<div class="lrow"><span class="ln">83</span><span class="code">        admin.router,          <span style="color:#6a9955"># админ-раздел (проверки ролей внутри)</span></span></div>
+<div class="lrow"><span class="ln">84</span><span class="code">    )</span></div>
+<div class="lrow"><span class="ln">85</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">86</span><span class="code">    <span style="color:#6a9955"># --- Контроль доступа на все события ---</span></span></div>
+<div class="lrow"><span class="ln">87</span><span class="code">    dp.message.middleware(AccessControlMiddleware(UserRepository(db), settings.admin_ids))</span></div>
+<div class="lrow"><span class="ln">88</span><span class="code">    dp.callback_query.middleware(AccessControlMiddleware(UserRepository(db), settings.admin_ids))</span></div>
+<div class="lrow"><span class="ln">89</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">90</span><span class="code">    <span style="color:#6a9955"># --- Централизованная обработка исключений ---</span></span></div>
+<div class="lrow"><span class="ln">91</span><span class="code">    dp.errors.register(_handle_error)</span></div>
+<div class="lrow"><span class="ln">92</span><span class="code">    <span style="color:#569cd6">return</span> dp</span></div>
+<div class="lrow"><span class="ln">93</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">94</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">95</span><span class="code"><span style="color:#569cd6">async</span> <span style="color:#569cd6">def</span> _handle_error(event: ErrorEvent, db: Database) -&gt; <span style="color:#dcdcaa">bool</span>:</span></div>
+<div class="lrow"><span class="ln">96</span><span class="code">    <span style="color:#ce9178">&quot;&quot;&quot;Показывает пользователю понятное сообщение; подробности — в логах.&quot;&quot;&quot;</span></span></div>
+<div class="lrow"><span class="ln">97</span><span class="code">    logger.error(<span style="color:#ce9178">&quot;Необработанное исключение: %s&quot;</span>, event.exception, exc_info=<span style="color:#569cd6">True</span>)</span></div>
+<div class="lrow"><span class="ln">98</span><span class="code">    update = event.update</span></div>
+<div class="lrow"><span class="ln">99</span><span class="code">    chat_target = update.message <span style="color:#569cd6">or</span> (update.callback_query.message <span style="color:#569cd6">if</span> update.callback_query <span style="color:#569cd6">else</span> <span style="color:#569cd6">None</span>)</span></div>
+<div class="lrow"><span class="ln">100</span><span class="code">    <span style="color:#569cd6">if</span> chat_target <span style="color:#569cd6">is</span> <span style="color:#569cd6">not</span> <span style="color:#569cd6">None</span>:</span></div>
+<div class="lrow"><span class="ln">101</span><span class="code">        <span style="color:#569cd6">try</span>:</span></div>
+<div class="lrow"><span class="ln">102</span><span class="code">            <span style="color:#569cd6">await</span> chat_target.answer(</span></div>
+<div class="lrow"><span class="ln">103</span><span class="code">                <span style="color:#ce9178">&quot;⚠️ Произошла ошибка. Она зафиксирована в журнале — &quot;</span></span></div>
+<div class="lrow"><span class="ln">104</span><span class="code">                <span style="color:#ce9178">&quot;попробуйте повторить действие позже.&quot;</span></span></div>
+<div class="lrow"><span class="ln">105</span><span class="code">            )</span></div>
+<div class="lrow"><span class="ln">106</span><span class="code">        <span style="color:#569cd6">except</span> Exception:  <span style="color:#6a9955"># noqa: S110 — не критично, если не отправилось</span></span></div>
+<div class="lrow"><span class="ln">107</span><span class="code">            <span style="color:#569cd6">pass</span></span></div>
+<div class="lrow"><span class="ln">108</span><span class="code">    <span style="color:#569cd6">return</span> <span style="color:#569cd6">True</span></span></div>
+<div class="lrow"><span class="ln">109</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">110</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">111</span><span class="code"><span style="color:#569cd6">async</span> <span style="color:#569cd6">def</span> run() -&gt; <span style="color:#569cd6">None</span>:</span></div>
+<div class="lrow"><span class="ln">112</span><span class="code">    <span style="color:#ce9178">&quot;&quot;&quot;Полный цикл запуска приложения.&quot;&quot;&quot;</span></span></div>
+<div class="lrow"><span class="ln">113</span><span class="code">    settings = load_settings(PROJECT_ROOT)</span></div>
+<div class="lrow"><span class="ln">114</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">115</span><span class="code">    <span style="color:#6a9955"># --- Проверка обязательных настроек ДО запуска бота ---</span></span></div>
+<div class="lrow"><span class="ln">116</span><span class="code">    <span style="color:#569cd6">if</span> <span style="color:#569cd6">not</span> settings.bot_token:</span></div>
+<div class="lrow"><span class="ln">117</span><span class="code">        <span style="color:#dcdcaa">print</span>(<span style="color:#ce9178">&quot;⛔ BOT_TOKEN не задан. Скопируйте .env.example в .env и укажите токен.&quot;</span>)</span></div>
+<div class="lrow"><span class="ln">118</span><span class="code">        sys.exit(<span style="color:#b5cea8">1</span>)</span></div>
+<div class="lrow"><span class="ln">119</span><span class="code">    <span style="color:#569cd6">if</span> <span style="color:#569cd6">not</span> settings.admin_ids:</span></div>
+<div class="lrow"><span class="ln">120</span><span class="code">        <span style="color:#dcdcaa">print</span>(<span style="color:#ce9178">&quot;⛔ ADMIN_IDS не задан. Укажите в .env Telegram ID администраторов.&quot;</span>)</span></div>
+<div class="lrow"><span class="ln">121</span><span class="code">        sys.exit(<span style="color:#b5cea8">1</span>)</span></div>
+<div class="lrow"><span class="ln">122</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">123</span><span class="code">    setup_logging(PROJECT_ROOT / <span style="color:#ce9178">&quot;logs&quot;</span>, settings.log_level)</span></div>
+<div class="lrow"><span class="ln">124</span><span class="code">    logger.info(<span style="color:#ce9178">&quot;=&quot;</span> * <span style="color:#b5cea8">60</span>)</span></div>
+<div class="lrow"><span class="ln">125</span><span class="code">    logger.info(<span style="color:#ce9178">&quot;Приложение запускается&quot;</span>)</span></div>
+<div class="lrow"><span class="ln">126</span><span class="code">    logger.info(<span style="color:#ce9178">&quot;Обслуживаемая команда: одна установка бот — одна команда&quot;</span>)</span></div>
+<div class="lrow"><span class="ln">127</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">128</span><span class="code">    <span style="color:#6a9955"># --- База данных ---</span></span></div>
+<div class="lrow"><span class="ln">129</span><span class="code">    db = Database(PROJECT_ROOT / settings.database_path)</span></div>
+<div class="lrow"><span class="ln">130</span><span class="code">    <span style="color:#569cd6">await</span> db.connect()</span></div>
+<div class="lrow"><span class="ln">131</span><span class="code">    <span style="color:#569cd6">await</span> migrate(db)</span></div>
+<div class="lrow"><span class="ln">132</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">133</span><span class="code">    <span style="color:#6a9955"># --- Резервная копия при первом запуске ---</span></span></div>
+<div class="lrow"><span class="ln">134</span><span class="code">    backup_service = BackupService(db.db_path, PROJECT_ROOT / <span style="color:#ce9178">&quot;backups&quot;</span>)</span></div>
+<div class="lrow"><span class="ln">135</span><span class="code">    <span style="color:#569cd6">if</span> settings.backup_enabled:</span></div>
+<div class="lrow"><span class="ln">136</span><span class="code">        <span style="color:#569cd6">await</span> backup_service.ensure_startup_backup(db.conn)</span></div>
+<div class="lrow"><span class="ln">137</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">138</span><span class="code">    <span style="color:#6a9955"># --- Telegram ---</span></span></div>
+<div class="lrow"><span class="ln">139</span><span class="code">    bot = Bot(</span></div>
+<div class="lrow"><span class="ln">140</span><span class="code">        token=settings.bot_token,</span></div>
+<div class="lrow"><span class="ln">141</span><span class="code">        default=DefaultBotProperties(parse_mode=ParseMode.HTML),</span></div>
+<div class="lrow"><span class="ln">142</span><span class="code">    )</span></div>
+<div class="lrow"><span class="ln">143</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">144</span><span class="code">    dp = build_dispatcher(db, settings)</span></div>
+<div class="lrow"><span class="ln">145</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">146</span><span class="code">    logger.info(<span style="color:#ce9178">&quot;Подключение к Telegram API...&quot;</span>)</span></div>
+<div class="lrow"><span class="ln">147</span><span class="code">    <span style="color:#569cd6">try</span>:</span></div>
+<div class="lrow"><span class="ln">148</span><span class="code">        me = <span style="color:#569cd6">await</span> bot.get_me()</span></div>
+<div class="lrow"><span class="ln">149</span><span class="code">        logger.info(<span style="color:#ce9178">&quot;Бот @%s готов принимать сообщения (id=%s)&quot;</span>, me.username, me.id)</span></div>
+<div class="lrow"><span class="ln">150</span><span class="code">    <span style="color:#569cd6">except</span> Exception <span style="color:#569cd6">as</span> exc:</span></div>
+<div class="lrow"><span class="ln">151</span><span class="code">        logger.critical(<span style="color:#ce9178">&quot;Не удалось подключиться к Telegram: %s&quot;</span>, exc)</span></div>
+<div class="lrow"><span class="ln">152</span><span class="code">        <span style="color:#569cd6">await</span> db.close()</span></div>
+<div class="lrow"><span class="ln">153</span><span class="code">        sys.exit(<span style="color:#b5cea8">1</span>)</span></div>
+<div class="lrow"><span class="ln">154</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">155</span><span class="code">    <span style="color:#6a9955"># --- Публичные команды в меню бота («/» слева от поля ввода).</span></span></div>
+<div class="lrow"><span class="ln">156</span><span class="code">    <span style="color:#6a9955"># Без set_my_commands список разделов меню пуст (клавиатура бота</span></span></div>
+<div class="lrow"><span class="ln">157</span><span class="code">    <span style="color:#6a9955"># показывает только те команды, что зарегистрированы в Telegram API);</span></span></div>
+<div class="lrow"><span class="ln">158</span><span class="code">    <span style="color:#6a9955"># админ-разделы остаются inline-кнопками главного меню.</span></span></div>
+<div class="lrow"><span class="ln">159</span><span class="code">    <span style="color:#569cd6">try</span>:</span></div>
+<div class="lrow"><span class="ln">160</span><span class="code">        <span style="color:#569cd6">await</span> bot.set_my_commands([</span></div>
+<div class="lrow"><span class="ln">161</span><span class="code">            BotCommand(command=<span style="color:#ce9178">&quot;start&quot;</span>, description=<span style="color:#ce9178">&quot;Приветствие и главное меню&quot;</span>),</span></div>
+<div class="lrow"><span class="ln">162</span><span class="code">            BotCommand(command=<span style="color:#ce9178">&quot;add&quot;</span>, description=<span style="color:#ce9178">&quot;Создать задачу (пошагово)&quot;</span>),</span></div>
+<div class="lrow"><span class="ln">163</span><span class="code">            BotCommand(command=<span style="color:#ce9178">&quot;my&quot;</span>, description=<span style="color:#ce9178">&quot;Мои назначенные задачи&quot;</span>),</span></div>
+<div class="lrow"><span class="ln">164</span><span class="code">            BotCommand(command=<span style="color:#ce9178">&quot;list&quot;</span>, description=<span style="color:#ce9178">&quot;Все задачи с фильтрами&quot;</span>),</span></div>
+<div class="lrow"><span class="ln">165</span><span class="code">            BotCommand(command=<span style="color:#ce9178">&quot;stats&quot;</span>, description=<span style="color:#ce9178">&quot;Статистика по базе&quot;</span>),</span></div>
+<div class="lrow"><span class="ln">166</span><span class="code">            BotCommand(command=<span style="color:#ce9178">&quot;list_csv&quot;</span>, description=<span style="color:#ce9178">&quot;Экспорт задач в CSV&quot;</span>),</span></div>
+<div class="lrow"><span class="ln">167</span><span class="code">            BotCommand(command=<span style="color:#ce9178">&quot;export_excel&quot;</span>, description=<span style="color:#ce9178">&quot;Экспорт в Excel (3 листа)&quot;</span>),</span></div>
+<div class="lrow"><span class="ln">168</span><span class="code">            BotCommand(command=<span style="color:#ce9178">&quot;help&quot;</span>, description=<span style="color:#ce9178">&quot;Справка&quot;</span>),</span></div>
+<div class="lrow"><span class="ln">169</span><span class="code">        ])</span></div>
+<div class="lrow"><span class="ln">170</span><span class="code">        logger.info(<span style="color:#ce9178">&quot;Меню команд бота установлено (%d команд)&quot;</span>, <span style="color:#b5cea8">8</span>)</span></div>
+<div class="lrow"><span class="ln">171</span><span class="code">    <span style="color:#569cd6">except</span> Exception <span style="color:#569cd6">as</span> exc:</span></div>
+<div class="lrow"><span class="ln">172</span><span class="code">        logger.warning(<span style="color:#ce9178">&quot;Не удалось установить меню команд: %s&quot;</span>, exc)  <span style="color:#6a9955"># не критично</span></span></div>
+<div class="lrow"><span class="ln">173</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">174</span><span class="code">    logger.info(<span style="color:#ce9178">&quot;Запуск polling&quot;</span>)</span></div>
+<div class="lrow"><span class="ln">175</span><span class="code">    <span style="color:#569cd6">try</span>:</span></div>
+<div class="lrow"><span class="ln">176</span><span class="code">        <span style="color:#569cd6">await</span> dp.start_polling(</span></div>
+<div class="lrow"><span class="ln">177</span><span class="code">            bot,</span></div>
+<div class="lrow"><span class="ln">178</span><span class="code">            handle_signals=<span style="color:#569cd6">True</span>,</span></div>
+<div class="lrow"><span class="ln">179</span><span class="code">            polling_timeout=<span style="color:#b5cea8">30</span>,</span></div>
+<div class="lrow"><span class="ln">180</span><span class="code">            <span style="color:#6a9955"># Повторы при временных сетевых ошибках: задержка растёт</span></span></div>
+<div class="lrow"><span class="ln">181</span><span class="code">            <span style="color:#6a9955"># от 5 до 60 секунд и дальше не увеличивается —</span></span></div>
+<div class="lrow"><span class="ln">182</span><span class="code">            <span style="color:#6a9955"># бесконечные циклы повторов исключены.</span></span></div>
+<div class="lrow"><span class="ln">183</span><span class="code">            backoff_config=BackoffConfig(min_delay=<span style="color:#b5cea8">5</span>.<span style="color:#b5cea8">0</span>, max_delay=<span style="color:#b5cea8">60</span>.<span style="color:#b5cea8">0</span>,</span></div>
+<div class="lrow"><span class="ln">184</span><span class="code">                                         factor=<span style="color:#b5cea8">1</span>.<span style="color:#b5cea8">6</span>, jitter=<span style="color:#b5cea8">0</span>.<span style="color:#b5cea8">0</span>),</span></div>
+<div class="lrow"><span class="ln">185</span><span class="code">        )</span></div>
+<div class="lrow"><span class="ln">186</span><span class="code">    <span style="color:#569cd6">finally</span>:</span></div>
+<div class="lrow"><span class="ln">187</span><span class="code">        logger.info(<span style="color:#ce9178">&quot;Приложение останавливается&quot;</span>)</span></div>
+<div class="lrow"><span class="ln">188</span><span class="code">        <span style="color:#569cd6">await</span> bot.session.close()</span></div>
+<div class="lrow"><span class="ln">189</span><span class="code">        <span style="color:#569cd6">await</span> db.close()</span></div>
+<div class="lrow"><span class="ln">190</span><span class="code">        logger.info(<span style="color:#ce9178">&quot;Ресурсы освобождены, работа завершена&quot;</span>)</span></div>
+<div class="lrow"><span class="ln">191</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">192</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">193</span><span class="code"><span style="color:#569cd6">if</span> __name__ == <span style="color:#ce9178">&quot;__main__&quot;</span>:</span></div>
+<div class="lrow"><span class="ln">194</span><span class="code">    <span style="color:#569cd6">try</span>:</span></div>
+<div class="lrow"><span class="ln">195</span><span class="code">        asyncio.run(run())</span></div>
+<div class="lrow"><span class="ln">196</span><span class="code">    <span style="color:#569cd6">except</span> (KeyboardInterrupt, SystemExit):</span></div>
+<div class="lrow"><span class="ln">197</span><span class="code">        <span style="color:#569cd6">pass</span></span></div>
+<div class="lrow"><span class="ln">198</span><span class="code">&nbsp;</span></div></div></div><div class="shot" id="shot-export"><div class="bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span></div><div class="filetab"><span class="active">team_task_manager/app/handlers/exports.py</span></div><div class="codearea"><div class="lrow"><span class="ln">1</span><span class="code"><span style="color:#ce9178">&quot;&quot;&quot;Обработчики экспорта: /list_csv (CSV), /export_excel (XLSX) и меню «📤 Экспорт».</span></div>
+<div class="lrow"><span class="ln">2</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">3</span><span class="code">Единая логика формирования и отправки — _build_and_send(); её вызывают</span></div>
+<div class="lrow"><span class="ln">4</span><span class="code">и команды (как раньше), и inline-кнопки меню экспорта (exp:csv / exp:xlsx).</span></div>
+<div class="lrow"><span class="ln">5</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">6</span><span class="code">Порядок: формируем временный файл в exports/, отправляем документом,</span></div>
+<div class="lrow"><span class="ln">7</span><span class="code">затем удаляем файл (в т.ч. при ошибке отправки). Экспорт — снимок базы</span></div>
+<div class="lrow"><span class="ln">8</span><span class="code">на момент выгрузки.</span></div>
+<div class="lrow"><span class="ln">9</span><span class="code">&quot;&quot;&quot;</span></span></div>
+<div class="lrow"><span class="ln">10</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">11</span><span class="code"><span style="color:#569cd6">from</span> __future__ <span style="color:#569cd6">import</span> annotations</span></div>
+<div class="lrow"><span class="ln">12</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">13</span><span class="code"><span style="color:#569cd6">import</span> logging</span></div>
+<div class="lrow"><span class="ln">14</span><span class="code"><span style="color:#569cd6">from</span> pathlib <span style="color:#569cd6">import</span> Path</span></div>
+<div class="lrow"><span class="ln">15</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">16</span><span class="code"><span style="color:#569cd6">from</span> aiogram <span style="color:#569cd6">import</span> F, Router, types</span></div>
+<div class="lrow"><span class="ln">17</span><span class="code"><span style="color:#569cd6">from</span> aiogram.types <span style="color:#569cd6">import</span> InlineKeyboardButton, InlineKeyboardMarkup</span></div>
+<div class="lrow"><span class="ln">18</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">19</span><span class="code"><span style="color:#569cd6">from</span> ..exports.csv_export <span style="color:#569cd6">import</span> write_csv_file</span></div>
+<div class="lrow"><span class="ln">20</span><span class="code"><span style="color:#569cd6">from</span> ..exports.excel_export <span style="color:#569cd6">import</span> write_xlsx</span></div>
+<div class="lrow"><span class="ln">21</span><span class="code"><span style="color:#569cd6">from</span> ..keyboards.main_menu <span style="color:#569cd6">import</span> back_to_menu</span></div>
+<div class="lrow"><span class="ln">22</span><span class="code"><span style="color:#569cd6">from</span> ..utils.validators <span style="color:#569cd6">import</span> clamp_text</span></div>
+<div class="lrow"><span class="ln">23</span><span class="code"><span style="color:#569cd6">from</span> aiogram.fsm.context <span style="color:#569cd6">import</span> FSMContext</span></div>
+<div class="lrow"><span class="ln">24</span><span class="code"><span style="color:#569cd6">from</span> .helpers <span style="color:#569cd6">import</span> leave_scenario, safe_answer</span></div>
+<div class="lrow"><span class="ln">25</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">26</span><span class="code">router = Router(name=<span style="color:#ce9178">&quot;exports&quot;</span>)</span></div>
+<div class="lrow"><span class="ln">27</span><span class="code">logger = logging.getLogger(__name__)</span></div>
+<div class="lrow"><span class="ln">28</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">29</span><span class="code">EXPORTS_DIR = Path(__file__).resolve().parents[<span style="color:#b5cea8">2</span>] / <span style="color:#ce9178">&quot;exports&quot;</span></span></div>
+<div class="lrow"><span class="ln">30</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">31</span><span class="code"><span style="color:#6a9955"># Нейтральные подписи: Telegram только отдаёт файл пользователю,</span></span></div>
+<div class="lrow"><span class="ln">32</span><span class="code"><span style="color:#6a9955"># место сохранения (Загрузки/Другое) определяет клиент Telegram.</span></span></div>
+<div class="lrow"><span class="ln">33</span><span class="code">CAPTIONS = {</span></div>
+<div class="lrow"><span class="ln">34</span><span class="code">    <span style="color:#ce9178">&quot;csv&quot;</span>: <span style="color:#ce9178">&quot;📄 Выгрузка задач в формате CSV ({count} задач).\n&quot;</span></span></div>
+<div class="lrow"><span class="ln">35</span><span class="code">           <span style="color:#ce9178">&quot;Кодировка UTF-8 с BOM, разделитель «;» — открывается в Excel/Calc.&quot;</span>,</span></div>
+<div class="lrow"><span class="ln">36</span><span class="code">    <span style="color:#ce9178">&quot;xlsx&quot;</span>: <span style="color:#ce9178">&quot;📊 Выгрузка задач в формате Excel ({count} задач).\n&quot;</span></span></div>
+<div class="lrow"><span class="ln">37</span><span class="code">            <span style="color:#ce9178">&quot;Листы: ЗАДАЧИ, СВОДКА, СПРАВОЧНИКИ.&quot;</span>,</span></div>
+<div class="lrow"><span class="ln">38</span><span class="code">}</span></div>
+<div class="lrow"><span class="ln">39</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">40</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">41</span><span class="code"><span style="color:#569cd6">def</span> export_menu_keyboard() -&gt; InlineKeyboardMarkup:</span></div>
+<div class="lrow"><span class="ln">42</span><span class="code">    <span style="color:#ce9178">&quot;&quot;&quot;Кнопки скачивания файлов + возврат в главное меню.&quot;&quot;&quot;</span></span></div>
+<div class="lrow"><span class="ln">43</span><span class="code">    rows = [</span></div>
+<div class="lrow"><span class="ln">44</span><span class="code">        [InlineKeyboardButton(text=<span style="color:#ce9178">&quot;📄 Скачать CSV&quot;</span>, callback_data=<span style="color:#ce9178">&quot;exp:csv&quot;</span>)],</span></div>
+<div class="lrow"><span class="ln">45</span><span class="code">        [InlineKeyboardButton(text=<span style="color:#ce9178">&quot;📊 Скачать Excel&quot;</span>, callback_data=<span style="color:#ce9178">&quot;exp:xlsx&quot;</span>)],</span></div>
+<div class="lrow"><span class="ln">46</span><span class="code">        *back_to_menu().inline_keyboard,</span></div>
+<div class="lrow"><span class="ln">47</span><span class="code">    ]</span></div>
+<div class="lrow"><span class="ln">48</span><span class="code">    <span style="color:#569cd6">return</span> InlineKeyboardMarkup(inline_keyboard=rows)</span></div>
+<div class="lrow"><span class="ln">49</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">50</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">51</span><span class="code"><span style="color:#569cd6">async</span> <span style="color:#569cd6">def</span> _build_and_send(target: types.Message, kind: <span style="color:#dcdcaa">str</span>, task_service,</span></div>
+<div class="lrow"><span class="ln">52</span><span class="code">                          settings_repo, statistics_service, timezone_name: <span style="color:#dcdcaa">str</span>,</span></div>
+<div class="lrow"><span class="ln">53</span><span class="code">                          exports_dir: Path = EXPORTS_DIR) -&gt; <span style="color:#569cd6">None</span>:</span></div>
+<div class="lrow"><span class="ln">54</span><span class="code">    <span style="color:#ce9178">&quot;&quot;&quot;Формирует файл выгрузки (csv|xlsx) и отправляет его документом.</span></div>
+<div class="lrow"><span class="ln">55</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">56</span><span class="code">    Общая точка для /list_csv, /export_excel и кнопок меню экспорта —</span></div>
+<div class="lrow"><span class="ln">57</span><span class="code">    бизнес-логика формирования файлов не дублируется.</span></div>
+<div class="lrow"><span class="ln">58</span><span class="code">    Пустая база не блокирует выгрузку: оба формата позволяют создать</span></div>
+<div class="lrow"><span class="ln">59</span><span class="code">    отчёт без задач (CSV — строка заголовков, Excel — три листа).</span></div>
+<div class="lrow"><span class="ln">60</span><span class="code">    &quot;&quot;&quot;</span></span></div>
+<div class="lrow"><span class="ln">61</span><span class="code">    tasks = <span style="color:#569cd6">await</span> task_service.tasks.all_for_export()</span></div>
+<div class="lrow"><span class="ln">62</span><span class="code">    <span style="color:#569cd6">if</span> kind == <span style="color:#ce9178">&quot;csv&quot;</span>:</span></div>
+<div class="lrow"><span class="ln">63</span><span class="code">        path = write_csv_file(tasks, exports_dir, timezone_name)</span></div>
+<div class="lrow"><span class="ln">64</span><span class="code">    <span style="color:#569cd6">else</span>:</span></div>
+<div class="lrow"><span class="ln">65</span><span class="code">        stats = <span style="color:#569cd6">await</span> statistics_service.collect()</span></div>
+<div class="lrow"><span class="ln">66</span><span class="code">        dictionaries = <span style="color:#569cd6">await</span> settings_repo.all_for_export()</span></div>
+<div class="lrow"><span class="ln">67</span><span class="code">        path = write_xlsx(tasks, stats, dictionaries, exports_dir, timezone_name)</span></div>
+<div class="lrow"><span class="ln">68</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">69</span><span class="code">    caption = CAPTIONS[kind].format(count=<span style="color:#dcdcaa">len</span>(tasks))</span></div>
+<div class="lrow"><span class="ln">70</span><span class="code">    <span style="color:#569cd6">try</span>:</span></div>
+<div class="lrow"><span class="ln">71</span><span class="code">        <span style="color:#569cd6">await</span> target.answer_document(types.FSInputFile(path), caption=clamp_text(caption, <span style="color:#b5cea8">900</span>))</span></div>
+<div class="lrow"><span class="ln">72</span><span class="code">        logger.info(<span style="color:#ce9178">&quot;Файл экспорта отправлен: %s (%d задач)&quot;</span>, path.name, <span style="color:#dcdcaa">len</span>(tasks))</span></div>
+<div class="lrow"><span class="ln">73</span><span class="code">    <span style="color:#569cd6">except</span> Exception:</span></div>
+<div class="lrow"><span class="ln">74</span><span class="code">        <span style="color:#6a9955"># Ошибки доставки (сеть/Telegram API) не должны оставлять у</span></span></div>
+<div class="lrow"><span class="ln">75</span><span class="code">        <span style="color:#6a9955"># пользователя ощущение успеха — показываем понятное сообщение,</span></span></div>
+<div class="lrow"><span class="ln">76</span><span class="code">        <span style="color:#6a9955"># подробности в логах. Файл всё равно удаляется в finally.</span></span></div>
+<div class="lrow"><span class="ln">77</span><span class="code">        logger.exception(<span style="color:#ce9178">&quot;Не удалось отправить файл экспорта: %s&quot;</span>, path.name)</span></div>
+<div class="lrow"><span class="ln">78</span><span class="code">        <span style="color:#569cd6">try</span>:</span></div>
+<div class="lrow"><span class="ln">79</span><span class="code">            <span style="color:#569cd6">await</span> target.answer(</span></div>
+<div class="lrow"><span class="ln">80</span><span class="code">                <span style="color:#ce9178">&quot;⚠️ Не удалось отправить файл выгрузки. &quot;</span></span></div>
+<div class="lrow"><span class="ln">81</span><span class="code">                <span style="color:#ce9178">&quot;Попробуйте ещё раз — если не поможет, обратитесь к администратору.&quot;</span></span></div>
+<div class="lrow"><span class="ln">82</span><span class="code">            )</span></div>
+<div class="lrow"><span class="ln">83</span><span class="code">        <span style="color:#569cd6">except</span> Exception:  <span style="color:#6a9955"># noqa: S110 — чат мог стать недоступным; не критично</span></span></div>
+<div class="lrow"><span class="ln">84</span><span class="code">            <span style="color:#569cd6">pass</span></span></div>
+<div class="lrow"><span class="ln">85</span><span class="code">    <span style="color:#569cd6">finally</span>:</span></div>
+<div class="lrow"><span class="ln">86</span><span class="code">        <span style="color:#569cd6">if</span> path.exists():</span></div>
+<div class="lrow"><span class="ln">87</span><span class="code">            path.unlink(missing_ok=<span style="color:#569cd6">True</span>)</span></div>
+<div class="lrow"><span class="ln">88</span><span class="code">            logger.info(<span style="color:#ce9178">&quot;Временный файл экспорта удалён: %s&quot;</span>, path.name)</span></div>
+<div class="lrow"><span class="ln">89</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">90</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">91</span><span class="code"><span style="color:#6a9955"># ----------------------------------------------------------------------</span></span></div>
+<div class="lrow"><span class="ln">92</span><span class="code"><span style="color:#6a9955"># Команды (сохранены как раньше, но логика переехала в _build_and_send)</span></span></div>
+<div class="lrow"><span class="ln">93</span><span class="code"><span style="color:#6a9955"># ----------------------------------------------------------------------</span></span></div>
+<div class="lrow"><span class="ln">94</span><span class="code">@router.message(F.text.startswith(<span style="color:#ce9178">&quot;/list_csv&quot;</span>))</span></div>
+<div class="lrow"><span class="ln">95</span><span class="code"><span style="color:#569cd6">async</span> <span style="color:#569cd6">def</span> cmd_list_csv(message: types.Message, task_service,</span></div>
+<div class="lrow"><span class="ln">96</span><span class="code">                       timezone_name: <span style="color:#dcdcaa">str</span>, user_db: <span style="color:#dcdcaa">dict</span>) -&gt; <span style="color:#569cd6">None</span>:</span></div>
+<div class="lrow"><span class="ln">97</span><span class="code">    <span style="color:#ce9178">&quot;&quot;&quot;CSV со всеми задачами (UTF-8 BOM, разделитель &#x27;;&#x27;).&quot;&quot;&quot;</span></span></div>
+<div class="lrow"><span class="ln">98</span><span class="code">    logger.info(<span style="color:#ce9178">&quot;Пользователь id=%s выгрузил CSV (команда)&quot;</span>, message.from_user.id)</span></div>
+<div class="lrow"><span class="ln">99</span><span class="code">    <span style="color:#569cd6">await</span> _build_and_send(message, <span style="color:#ce9178">&quot;csv&quot;</span>, task_service, <span style="color:#569cd6">None</span>, <span style="color:#569cd6">None</span>, timezone_name)</span></div>
+<div class="lrow"><span class="ln">100</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">101</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">102</span><span class="code">@router.message(F.text.startswith(<span style="color:#ce9178">&quot;/export_excel&quot;</span>))</span></div>
+<div class="lrow"><span class="ln">103</span><span class="code"><span style="color:#569cd6">async</span> <span style="color:#569cd6">def</span> cmd_export_excel(message: types.Message, task_service, settings_repo,</span></div>
+<div class="lrow"><span class="ln">104</span><span class="code">                           statistics_service, timezone_name: <span style="color:#dcdcaa">str</span>, db) -&gt; <span style="color:#569cd6">None</span>:</span></div>
+<div class="lrow"><span class="ln">105</span><span class="code">    <span style="color:#ce9178">&quot;&quot;&quot;XLSX с тремя листами: ЗАДАЧИ, СВОДКА, СПРАВОЧНИКИ.&quot;&quot;&quot;</span></span></div>
+<div class="lrow"><span class="ln">106</span><span class="code">    logger.info(<span style="color:#ce9178">&quot;Пользователь id=%s выгрузил Excel (команда)&quot;</span>, message.from_user.id)</span></div>
+<div class="lrow"><span class="ln">107</span><span class="code">    <span style="color:#569cd6">await</span> _build_and_send(message, <span style="color:#ce9178">&quot;xlsx&quot;</span>, task_service, settings_repo,</span></div>
+<div class="lrow"><span class="ln">108</span><span class="code">                          statistics_service, timezone_name)</span></div>
+<div class="lrow"><span class="ln">109</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">110</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">111</span><span class="code"><span style="color:#6a9955"># ----------------------------------------------------------------------</span></span></div>
+<div class="lrow"><span class="ln">112</span><span class="code"><span style="color:#6a9955"># Меню экспорта и кнопки скачивания</span></span></div>
+<div class="lrow"><span class="ln">113</span><span class="code"><span style="color:#6a9955"># ----------------------------------------------------------------------</span></span></div>
+<div class="lrow"><span class="ln">114</span><span class="code">@router.callback_query(F.data == <span style="color:#ce9178">&quot;menu:export&quot;</span>)</span></div>
+<div class="lrow"><span class="ln">115</span><span class="code"><span style="color:#569cd6">async</span> <span style="color:#569cd6">def</span> cb_export(callback: types.CallbackQuery, state: FSMContext,</span></div>
+<div class="lrow"><span class="ln">116</span><span class="code">                    task_service) -&gt; <span style="color:#569cd6">None</span>:</span></div>
+<div class="lrow"><span class="ln">117</span><span class="code">    <span style="color:#ce9178">&quot;&quot;&quot;Меню экспорта: кнопки скачивания файлов.&quot;&quot;&quot;</span></span></div>
+<div class="lrow"><span class="ln">118</span><span class="code">    <span style="color:#569cd6">await</span> leave_scenario(state)</span></div>
+<div class="lrow"><span class="ln">119</span><span class="code">    count = <span style="color:#569cd6">await</span> task_service.tasks.count()</span></div>
+<div class="lrow"><span class="ln">120</span><span class="code">    empty_note = <span style="color:#ce9178">&quot;&quot;</span> <span style="color:#569cd6">if</span> count <span style="color:#569cd6">else</span> <span style="color:#ce9178">&quot;\n\n📭 В базе пока нет задач — файл будет содержать только заголовки.&quot;</span></span></div>
+<div class="lrow"><span class="ln">121</span><span class="code">    text = (</span></div>
+<div class="lrow"><span class="ln">122</span><span class="code">        <span style="color:#ce9178">&quot;📤 &lt;b&gt;Экспорт данных&lt;/b&gt;\n\n&quot;</span></span></div>
+<div class="lrow"><span class="ln">123</span><span class="code">        <span style="color:#ce9178">f&quot;В базе сейчас {count} задач.\n&quot;</span></span></div>
+<div class="lrow"><span class="ln">124</span><span class="code">        <span style="color:#ce9178">&quot;Выберите формат — бот отправит файл документом:&quot;</span> + empty_note</span></div>
+<div class="lrow"><span class="ln">125</span><span class="code">    )</span></div>
+<div class="lrow"><span class="ln">126</span><span class="code">    <span style="color:#569cd6">if</span> callback.message:</span></div>
+<div class="lrow"><span class="ln">127</span><span class="code">        <span style="color:#569cd6">await</span> callback.message.edit_text(text, reply_markup=export_menu_keyboard())</span></div>
+<div class="lrow"><span class="ln">128</span><span class="code">    <span style="color:#569cd6">await</span> safe_answer(callback)</span></div>
+<div class="lrow"><span class="ln">129</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">130</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">131</span><span class="code">@router.callback_query(F.data == <span style="color:#ce9178">&quot;exp:csv&quot;</span>)</span></div>
+<div class="lrow"><span class="ln">132</span><span class="code"><span style="color:#569cd6">async</span> <span style="color:#569cd6">def</span> cb_exp_csv(callback: types.CallbackQuery, task_service,</span></div>
+<div class="lrow"><span class="ln">133</span><span class="code">                     timezone_name: <span style="color:#dcdcaa">str</span>, settings_repo, statistics_service) -&gt; <span style="color:#569cd6">None</span>:</span></div>
+<div class="lrow"><span class="ln">134</span><span class="code">    <span style="color:#ce9178">&quot;&quot;&quot;Кнопка «📄 Скачать CSV».&quot;&quot;&quot;</span></span></div>
+<div class="lrow"><span class="ln">135</span><span class="code">    <span style="color:#569cd6">if</span> callback.message:</span></div>
+<div class="lrow"><span class="ln">136</span><span class="code">        <span style="color:#569cd6">await</span> _build_and_send(callback.message, <span style="color:#ce9178">&quot;csv&quot;</span>, task_service,</span></div>
+<div class="lrow"><span class="ln">137</span><span class="code">                              settings_repo, statistics_service, timezone_name)</span></div>
+<div class="lrow"><span class="ln">138</span><span class="code">    <span style="color:#569cd6">await</span> safe_answer(callback, <span style="color:#ce9178">&quot;Файл формируется&quot;</span>)</span></div>
+<div class="lrow"><span class="ln">139</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">140</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">141</span><span class="code">@router.callback_query(F.data == <span style="color:#ce9178">&quot;exp:xlsx&quot;</span>)</span></div>
+<div class="lrow"><span class="ln">142</span><span class="code"><span style="color:#569cd6">async</span> <span style="color:#569cd6">def</span> cb_exp_xlsx(callback: types.CallbackQuery, task_service, settings_repo,</span></div>
+<div class="lrow"><span class="ln">143</span><span class="code">                      statistics_service, timezone_name: <span style="color:#dcdcaa">str</span>) -&gt; <span style="color:#569cd6">None</span>:</span></div>
+<div class="lrow"><span class="ln">144</span><span class="code">    <span style="color:#ce9178">&quot;&quot;&quot;Кнопка «📊 Скачать Excel».&quot;&quot;&quot;</span></span></div>
+<div class="lrow"><span class="ln">145</span><span class="code">    <span style="color:#569cd6">if</span> callback.message:</span></div>
+<div class="lrow"><span class="ln">146</span><span class="code">        <span style="color:#569cd6">await</span> _build_and_send(callback.message, <span style="color:#ce9178">&quot;xlsx&quot;</span>, task_service,</span></div>
+<div class="lrow"><span class="ln">147</span><span class="code">                              settings_repo, statistics_service, timezone_name)</span></div>
+<div class="lrow"><span class="ln">148</span><span class="code">    <span style="color:#569cd6">await</span> safe_answer(callback, <span style="color:#ce9178">&quot;Файл формируется&quot;</span>)</span></div>
+<div class="lrow"><span class="ln">149</span><span class="code">&nbsp;</span></div></div></div><div class="shot" id="shot-nav"><div class="bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span></div><div class="filetab"><span class="active">team_task_manager/app/handlers/helpers.py</span></div><div class="codearea"><div class="lrow"><span class="ln">1</span><span class="code"><span style="color:#ce9178">&quot;&quot;&quot;Общие помощники для обработчиков.&quot;&quot;&quot;</span></span></div>
+<div class="lrow"><span class="ln">2</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">3</span><span class="code"><span style="color:#569cd6">from</span> __future__ <span style="color:#569cd6">import</span> annotations</span></div>
+<div class="lrow"><span class="ln">4</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">5</span><span class="code"><span style="color:#569cd6">from</span> aiogram.exceptions <span style="color:#569cd6">import</span> TelegramBadRequest</span></div>
+<div class="lrow"><span class="ln">6</span><span class="code"><span style="color:#569cd6">from</span> aiogram.fsm.context <span style="color:#569cd6">import</span> FSMContext</span></div>
+<div class="lrow"><span class="ln">7</span><span class="code"><span style="color:#569cd6">from</span> aiogram.types <span style="color:#569cd6">import</span> CallbackQuery</span></div>
+<div class="lrow"><span class="ln">8</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">9</span><span class="code">PAGE_SIZE = <span style="color:#b5cea8">10</span></span></div>
+<div class="lrow"><span class="ln">10</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">11</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">12</span><span class="code"><span style="color:#569cd6">async</span> <span style="color:#569cd6">def</span> safe_answer(callback: CallbackQuery, text: <span style="color:#dcdcaa">str</span> | <span style="color:#569cd6">None</span> = <span style="color:#569cd6">None</span>) -&gt; <span style="color:#569cd6">None</span>:</span></div>
+<div class="lrow"><span class="ln">13</span><span class="code">    <span style="color:#ce9178">&quot;&quot;&quot;callback.answer() без падения при истёкшем/неизвестном callback.&quot;&quot;&quot;</span></span></div>
+<div class="lrow"><span class="ln">14</span><span class="code">    <span style="color:#569cd6">try</span>:</span></div>
+<div class="lrow"><span class="ln">15</span><span class="code">        <span style="color:#569cd6">await</span> callback.answer(text)</span></div>
+<div class="lrow"><span class="ln">16</span><span class="code">    <span style="color:#569cd6">except</span> TelegramBadRequest:</span></div>
+<div class="lrow"><span class="ln">17</span><span class="code">        <span style="color:#569cd6">pass</span></span></div>
+<div class="lrow"><span class="ln">18</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">19</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">20</span><span class="code"><span style="color:#569cd6">async</span> <span style="color:#569cd6">def</span> leave_scenario(state: FSMContext) -&gt; <span style="color:#dcdcaa">bool</span>:</span></div>
+<div class="lrow"><span class="ln">21</span><span class="code">    <span style="color:#ce9178">&quot;&quot;&quot;Завершает активный FSM-сценарий при переходе пользователя в другой раздел.</span></div>
+<div class="lrow"><span class="ln">22</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">23</span><span class="code">    Управляемая очистка (в отличие от state.clear()):</span></div>
+<div class="lrow"><span class="ln">24</span><span class="code">      1) читаем данные до очистки;</span></div>
+<div class="lrow"><span class="ln">25</span><span class="code">      2) стираем активное состояние и временные данные незавершённого</span></div>
+<div class="lrow"><span class="ln">26</span><span class="code">         сценария (черновик задачи, purpose редактирования/админ-ввода);</span></div>
+<div class="lrow"><span class="ln">27</span><span class="code">      3) восстанавливаем ТОЛЬКО навигационные данные: last_list (контекст</span></div>
+<div class="lrow"><span class="ln">28</span><span class="code">         исходного списка) и search_text (чтобы продолжал работать поиск</span></div>
+<div class="lrow"><span class="ln">29</span><span class="code">         и его пагинация после возврата в меню).</span></div>
+<div class="lrow"><span class="ln">30</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">31</span><span class="code">    Возвращает True, если сценарий был активен (для уведомления</span></div>
+<div class="lrow"><span class="ln">32</span><span class="code">    «Незавершённый сценарий отменён»).</span></div>
+<div class="lrow"><span class="ln">33</span><span class="code">    &quot;&quot;&quot;</span></span></div>
+<div class="lrow"><span class="ln">34</span><span class="code">    data = <span style="color:#569cd6">await</span> state.get_data()</span></div>
+<div class="lrow"><span class="ln">35</span><span class="code">    was_active = (<span style="color:#569cd6">await</span> state.get_state() <span style="color:#569cd6">is</span> <span style="color:#569cd6">not</span> <span style="color:#569cd6">None</span>) <span style="color:#569cd6">or</span> <span style="color:#dcdcaa">bool</span>(data)</span></div>
+<div class="lrow"><span class="ln">36</span><span class="code">    nav = {</span></div>
+<div class="lrow"><span class="ln">37</span><span class="code">        key: value <span style="color:#569cd6">for</span> key <span style="color:#569cd6">in</span> (<span style="color:#ce9178">&quot;last_list&quot;</span>, <span style="color:#ce9178">&quot;search_text&quot;</span>)</span></div>
+<div class="lrow"><span class="ln">38</span><span class="code">        <span style="color:#569cd6">if</span> (value := data.get(key))</span></div>
+<div class="lrow"><span class="ln">39</span><span class="code">    }</span></div>
+<div class="lrow"><span class="ln">40</span><span class="code">    <span style="color:#569cd6">await</span> state.clear()</span></div>
+<div class="lrow"><span class="ln">41</span><span class="code">    <span style="color:#569cd6">if</span> nav:</span></div>
+<div class="lrow"><span class="ln">42</span><span class="code">        <span style="color:#569cd6">await</span> state.set_data(nav)</span></div>
+<div class="lrow"><span class="ln">43</span><span class="code">    <span style="color:#569cd6">return</span> was_active</span></div>
+<div class="lrow"><span class="ln">44</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">45</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">46</span><span class="code"><span style="color:#569cd6">async</span> <span style="color:#569cd6">def</span> nav_context(state: FSMContext | <span style="color:#569cd6">None</span>) -&gt; <span style="color:#dcdcaa">str</span> | <span style="color:#569cd6">None</span>:</span></div>
+<div class="lrow"><span class="ln">47</span><span class="code">    <span style="color:#ce9178">&quot;&quot;&quot;last_list из FSM-данных, если он корректен (&#x27;kind&#x27; или &#x27;kind:value&#x27;).</span></div>
+<div class="lrow"><span class="ln">48</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">49</span><span class="code">    Некорректный/отсутствующий контекст → None (безопасный fallback</span></div>
+<div class="lrow"><span class="ln">50</span><span class="code">    в общий список).</span></div>
+<div class="lrow"><span class="ln">51</span><span class="code">    &quot;&quot;&quot;</span></span></div>
+<div class="lrow"><span class="ln">52</span><span class="code">    <span style="color:#569cd6">if</span> state <span style="color:#569cd6">is</span> <span style="color:#569cd6">None</span>:</span></div>
+<div class="lrow"><span class="ln">53</span><span class="code">        <span style="color:#569cd6">return</span> <span style="color:#569cd6">None</span></span></div>
+<div class="lrow"><span class="ln">54</span><span class="code">    raw = (<span style="color:#569cd6">await</span> state.get_data()).get(<span style="color:#ce9178">&quot;last_list&quot;</span>)</span></div>
+<div class="lrow"><span class="ln">55</span><span class="code">    <span style="color:#569cd6">if</span> <span style="color:#dcdcaa">isinstance</span>(raw, <span style="color:#dcdcaa">str</span>) <span style="color:#569cd6">and</span> raw.count(<span style="color:#ce9178">&quot;:&quot;</span>) <span style="color:#569cd6">in</span> (<span style="color:#b5cea8">1</span>, <span style="color:#b5cea8">2</span>):</span></div>
+<div class="lrow"><span class="ln">56</span><span class="code">        <span style="color:#569cd6">return</span> raw</span></div>
+<div class="lrow"><span class="ln">57</span><span class="code">    <span style="color:#569cd6">return</span> <span style="color:#569cd6">None</span></span></div>
+<div class="lrow"><span class="ln">58</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">59</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">60</span><span class="code"><span style="color:#569cd6">async</span> <span style="color:#569cd6">def</span> clear_fsm(state: FSMContext) -&gt; <span style="color:#569cd6">None</span>:</span></div>
+<div class="lrow"><span class="ln">61</span><span class="code">    <span style="color:#ce9178">&quot;&quot;&quot;Корректная очистка состояния FSM после завершения сценария.&quot;&quot;&quot;</span></span></div>
+<div class="lrow"><span class="ln">62</span><span class="code">    <span style="color:#569cd6">await</span> state.clear()</span></div>
+<div class="lrow"><span class="ln">63</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">64</span><span class="code">&nbsp;</span></div>
+<div class="lrow"><span class="ln">65</span><span class="code"><span style="color:#569cd6">def</span> total_pages(total_items: <span style="color:#dcdcaa">int</span>, page_size: <span style="color:#dcdcaa">int</span> = PAGE_SIZE) -&gt; <span style="color:#dcdcaa">int</span>:</span></div>
+<div class="lrow"><span class="ln">66</span><span class="code">    <span style="color:#ce9178">&quot;&quot;&quot;Число страниц пагинации.&quot;&quot;&quot;</span></span></div>
+<div class="lrow"><span class="ln">67</span><span class="code">    <span style="color:#569cd6">return</span> <span style="color:#dcdcaa">max</span>(<span style="color:#b5cea8">1</span>, (total_items + page_size - <span style="color:#b5cea8">1</span>) // page_size)</span></div>
+<div class="lrow"><span class="ln">68</span><span class="code">&nbsp;</span></div></div></div><div class="shot" id="shot-pytest"><div class="titletab">Windows PowerShell</div><div class="term"><pre>PS ...\team_task_manager&gt; python -m pytest
+.......................................................                  [100%]
+55 passed in 7.83s
+</pre></div></div><div class="shot" id="shot-log"><div class="titletab">Windows PowerShell — журнал бота</div><div class="term"><pre>PS ...\team_task_manager&gt; Get-Content logs\app.log -Tail 14
+
+2026-11-20 01:04:35,521 | INFO     | aiogram.event | Update id=513439827 is handled. Duration 546 ms by bot id=8035983097
+2026-11-20 01:04:38,554 | INFO     | aiogram.event | Update id=513439828 is handled. Duration 312 ms by bot id=8035983097
+2026-11-20 01:05:04,342 | INFO     | app.exports.csv_export | CSV-экспорт создан: tasks_2026-11-19_22-05.csv (6 задач)
+2026-11-20 01:05:04,735 | INFO     | app.handlers.exports | Файл экспорта отправлен: tasks_2026-11-19_22-05.csv (6 задач)
+2026-11-20 01:05:04,737 | INFO     | app.handlers.exports | Временный файл экспорта удалён: tasks_2026-11-19_22-05.csv
+2026-11-20 01:05:04,850 | INFO     | aiogram.event | Update id=513439829 is handled. Duration 531 ms by bot id=8035983097
+2026-11-20 01:05:08,234 | INFO     | app.exports.excel_export | XLSX-экспорт создан: tasks_2026-11-19_22-05.xlsx (6 задач)
+2026-11-20 01:05:08,398 | INFO     | app.handlers.exports | Файл экспорта отправлен: tasks_2026-11-19_22-05.xlsx (6 задач)
+2026-11-20 01:05:08,403 | INFO     | app.handlers.exports | Временный файл экспорта удалён: tasks_2026-11-19_22-05.xlsx
+2026-11-20 01:05:08,520 | INFO     | aiogram.event | Update id=513439830 is handled. Duration 406 ms by bot id=8035983097
+2026-11-20 01:08:25,732 | INFO     | app.handlers.start | Пользователь id=209•••••0 открыл /start
+2026-11-20 01:08:25,734 | INFO     | aiogram.event | Update id=513439831 is handled. Duration 639 ms by bot id=8035983097
+2026-11-20 01:08:28,975 | INFO     | aiogram.event | Update id=513439832 is handled. Duration 250 ms by bot id=8035983097
+2026-11-20 01:09:05,028 | INFO     | aiogram.event | Update id=513439833 is handled. Duration 514 ms by bot id=8035983097</pre></div></div></body>
